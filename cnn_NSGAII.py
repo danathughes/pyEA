@@ -11,91 +11,74 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-## The SCH problem
+import os, sys
 
-# Problem definitions
-def SCH(x):
+def createCNNgenotype(N=2):
 	"""
-	n = 1
-	Variable bounds = [-10^3, 10^3]
-	Objectives:
-	  f1(x) = x^2
-	  f2(x) = (x-2)^2
-	Optimal solutions:
-	  x in [0,2]
-	convex
+	Create an N layer (conv-pool) CNN encoding
 	"""
 
-	assert x[0] >= -1e3, "x is out of bounds: %f" % x
-	assert x[0] <= 1e3, "x is out of bounds: %f" % x
+	MIN_CNN_WIDTH = 2
+	MAX_CNN_WIDTH = 75
+	MIN_CNN_KERNELS = 5
+	MAX_CNN_KERNELS = 30
+	MIN_CNN_STRIDE = 1
+	MAX_CNN_STRIDE = 5
+	MIN_POOL_SIZE = 2
+	MAX_POOL_SIZE = 5
+	MIN_POOL_STRIDE = 1
+	MAX_POOL_STRIDE = 5
+	MIN_FULL_CONNECTION = 5
+	MAX_FULL_CONNECTION = 200
 
-	return [x[0]**2, (x[0]-2)**2]
+	# Genotype is [CNN_width, num_CNN_kernels, CNN_stride, pool_size, pool_stride] * N
+	# followed by number of full connections.  In total, an integer string of length 
+	# 5*N+1.
 
-# Generating function
-def generateRandomGenotypeSCH(n=1, bounds=[-1e3, 1e3]):
+	genotype = [0]*(5*N+1)
+
+	# Fill in the CNN and pooling layer encodings
+	for i in range(N):
+		genotype[5*i+0] = np.random.randint(MIN_CNN_WIDTH, MAX_CNN_WIDTH+1)
+		genotype[5*i+1] = np.random.randint(MIN_CNN_KERNELS, MAX_CNN_KERNELS+1)
+		genotype[5*i+2] = np.random.randint(MIN_CNN_STRIDE, MAX_CNN_STRIDE+1)
+		genotype[5*i+3] = np.random.randint(MIN_POOL_SIZE, MAX_POOL_SIZE+1)
+		genotype[5*i+4] = np.random.randint(MIN_POOL_STRIDE, MAX_POOL_STRIDE+1)
+
+	# Fill in the fully connected layer bit
+	genotype[5*N] = np.random.randint(MIN_FULL_CONNECTION, MAX_FULL_CONNECTION+1)
+
+	return genotype
+
+
+def dummyObjective(gene):
 	"""
-	Create a new gene with the desired dimensionality and witning the 
-	bounds given
-	"""
-
-	return [np.random.random()*2e1 - 1e1]
-
-###
-
-### FON
-def FON(x):
-	"""
-	n = 3
-	Variable bounds = [-4,4]
-	Objectives:
-		f1(x) = 1 - exp(-Sum_i (x_i - 1/sqrt(3)^2))
-		f1(x) = 1 - exp(-Sum_i (x_i + 1/sqrt(3)^2))
-	Optimal Solution:
-		x1 = x2 = x3, in [-1/sqrt(3), 1/sqrt(3)]
-	nonconvex
-	"""
-
-	for i in range(3):
-		assert x[i] >= -4, "x[%d] is out of bounds: %f" % (i,x[i])
-		assert x[i] <= 4, "x[%d] is out of bounds: %f" % (i,x[i])
-
-	a = 0.0
-	b = 0.0
-
-	for i in range(3):
-		a += (x[i] - 1.0/np.sqrt(3))**2
-		b += (x[i] + 1.0/np.sqrt(3))**2
-
-	f1 = 1.0 - np.exp(-a)
-	f2 = 1.0 - np.exp(-b)
-
-	return [f1, f2]
-
-
-def generateRandomGenotypeFON(n=3, bounds=[-4, 4]):
-	"""
-	Create a new gene with the desired dimensionality and witning the 
-	bounds given
 	"""
 
-	val = [0,0,0]
-
-	for i in range(3):
-		val[i] = np.random.random() * 8.0 - 4.0
-
-	return val
+	return 0
 
 
-### Assign the problem
-# problem = (generateRandomGenotypeSCH, SCH)
-problem = (generateRandomGenotypeFON, FON)
+# Keep track of how many CNNs were created
+class Counter:
+	"""
+	"""
+
+	def __init__(self):
+		self.count = 0
+
+	def increment(self):
+		self.count += 1
+
+
+counter = Counter()
+
 
 class Individual:
 	"""
 	An individual consists of a gene and an objective
 	"""
 
-	def __init__(self, generatingFunction=problem[0], objectiveFunction=problem[1]):
+	def __init__(self, generatingFunction=createCNNgenotype, objectiveFunction=dummyObjective, counter=counter):
 		"""
 		Create a new individual using the gene generating function
 		"""
@@ -112,6 +95,8 @@ class Individual:
 
 		self.crowdingDistance = 0
 
+		self.name = 'cnn_%d' % counter.count
+		counter.increment()
 
 	def calculateObjective(self):
 		"""
@@ -219,6 +204,32 @@ def tournamentSelection(population, k=2, p=0.5):
 
 ### NSGA Algorithm
 
+def write_file(filename, population):
+	"""
+	"""
+
+	f = open(filename, 'w')
+	for p in population:
+		name = p.name
+		data = ','.join([str(g) for g in p.gene])
+		f.write(name + ',' + data + '\n')
+	f.close()
+
+
+def assign_objectives(filename, population):
+	f = open(filename)
+	lines = f.readlines()
+	f.close()
+
+	results = {}
+	for l in lines:
+		l = l.strip().split(',')
+		results[l[0]] = [float(l[1]), float(l[2])]
+
+	for p in population:
+		p.objective = results[p.name]
+
+
 class NSGA_II:
 	"""
 	"""
@@ -235,6 +246,12 @@ class NSGA_II:
 		self.generation = 0
 
 		self.selection = tournamentSelection
+
+		# Evaluate the first population
+#		write_file('./gene_eval/Generation0_genes.dat', self.population)
+#		cmd = 'python eval_cnn_phenotypes.py ./gene_eval/Generation0_genes.dat ./gene_eval/Generation0_results.dat'
+#		os.system(cmd)
+#		assign_objectives('./gene_eval/Generation0_results.dat', self.population)
 
 
 	def generate_children(self):
@@ -270,6 +287,14 @@ class NSGA_II:
 
 		parents = self.population
 		children = self.generate_children()
+
+		# Evaluate the children
+		prefix = './gene_eval/Children%d_' % self.generation
+		write_file(prefix + 'genes.dat', children)
+		cmd = 'python eval_cnn_phenotypes.py ' + prefix + 'genes.dat ' + prefix + 'results.dat'
+		os.system(cmd)
+		assign_objectives(prefix+'results.dat', children)
+
 
 		# Temporarily merge the two populations to create a new one
 		self.population = parents + children
@@ -425,7 +450,7 @@ def get_pts(pop):
 	return x,y
 
 
-def test(pop_size, num_steps, delay=0.5, ax_range=[-1,5,-1,5]):
+def test(pop_size, num_steps, delay=0.5, ax_range=[0,0.001,0,25000]):
 	"""
 	Run a test
 	"""
@@ -456,8 +481,6 @@ def test(pop_size, num_steps, delay=0.5, ax_range=[-1,5,-1,5]):
 		plt_data.set_ydata(y)
 		fig.canvas.draw()
 
-		time.sleep(delay)
-
 	print "Done.  10 best solutions are:"
 
 	nsga.sortPopulation()
@@ -467,6 +490,9 @@ def test(pop_size, num_steps, delay=0.5, ax_range=[-1,5,-1,5]):
 		print "  Variable: ", nsga.population[i].gene
 		print "  Objective:", nsga.population[i].objective
 
+	print "Press a key"
+	a = input()
+
 
 if __name__=='__main__':
-	test(50, 100)
+	test(10, 100)
