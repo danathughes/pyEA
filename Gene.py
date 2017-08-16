@@ -141,20 +141,144 @@ class Conv2DGene(Gene):
 	"""
 	"""
 
+	def __init__(self, kernel_size, stride, num_filters, activation_function):
+		"""
+		"""
+
+		self.kernel_size = kernel_size
+		self.stride = stride
+		self.num_filters = num_filters
+		self.activation = activation_function
+
+		self.type = CONV2D
+
+
+	def canFollow(self, prevGene):
+		"""
+		"""
+
+		pass
+
+
+	def outputDimension(self, prevGene):
+		"""
+		"""
+
+		pass
+
+
+	def mutate(self, prevGene, nextGene):
+		"""
+		"""
+
+		pass
+
 
 class Pool1DGene(Gene):
 	"""
 	"""
+
+	def __init__(self, kernel_size, stride, activation_function):
+		"""
+		"""
+
+		self.kernel_size = kernel_size
+		self.stride = stride
+		self.activation = activation_function
+
+		self.type = POOL1D
+
+
+	def canFollow(self, prevGene):
+		"""
+		"""
+
+		pass
+
+
+	def outputDimension(self, prevGene):
+		"""
+		"""
+
+		pass
+
+
+	def mutate(self, prevGene, nextGene):
+		"""
+		"""
+
+		pass
 
 
 class Pool2DGene(Gene):
 	"""
 	"""
 
+	def __init__(self, kernel_size, stride, activation_function):
+		"""
+		"""
+
+		self.kernel_size = kernel_size
+		self.stride = stride
+		self.activation = activation_function
+
+		self.type = POOL2D
+
+
+	def canFollow(self, prevGene):
+		"""
+		"""
+
+		pass
+
+
+	def outputDimension(self, prevGene):
+		"""
+		"""
+
+		pass
+
+
+	def mutate(self, prevGene, nextGene):
+		"""
+		"""
+
+		pass
+
 
 class FullyConnectedGene(Gene):
 	"""
 	"""
+
+	def __init__(self, size, activation_function):
+		"""
+		"""
+
+		self.size = size
+		self.activation = activation_function
+
+		self.type = FULLY_CONNECTED
+
+
+	def canFollow(self, prevGene):
+		"""
+		"""
+
+		pass
+
+
+	def outputDimension(self, prevGene):
+		"""
+		"""
+
+		pass
+
+
+	def mutate(self, prevGene, nextGene):
+		"""
+		"""
+
+		pass
 
 
 
