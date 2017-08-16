@@ -10,6 +10,7 @@ POOL1D = "POOL1D"
 POOL2D = "POOL2D"
 FULLY_CONNECTED = "FULLYCONNECTED"
 
+import random
 
 class Gene:
 	"""
@@ -145,3 +146,67 @@ class Pool2DGene(Gene):
 class FullyConnectedGene(Gene):
 	"""
 	"""
+
+
+
+def generateGenotype(inputGene, ConvProb=0.5, PoolProb=1.0, FullConnectProb = 0.5, is2D=False):
+	"""
+	Create a list of genes that describes a random, valid CNN
+	"""
+
+	# Pick out the appropriate Gene types
+	if is2D:
+		Conv = Conv2DGene
+		Pool = Pool2DGene
+	else:
+		Conv = Conv1DGene
+		Pool = Pool1DGene
+
+	genotype = [inputGene]
+
+	# Add convolution layers (and possibly pooling layers) until a random check fails
+	while random.random() < ConvProb:
+		# Add the Convolution layer, with random arguments...
+		genotype.append(Conv())
+
+		# Should a pooling layer be added?
+		if random.random() < PoolProb:
+			genotype.append(Pool())
+
+
+	# Added all the Convolution layers, now add FC layers
+	while random.random() < FullConnectProb:
+		# Add a fully connected layer
+		genotype.append(FullConnectProb())
+
+
+	return genotype
+
+
+def generateGenotypeA(inputGene, numConv, numFullConnected, is2D=False):
+	"""
+	Create a list of genes that describes a random, valid CNN
+	"""
+
+	# Pick out the appropriate Gene types
+	if is2D:
+		Conv = Conv2DGene
+		Pool = Pool2DGene
+	else:
+		Conv = Conv1DGene
+		Pool = Pool1DGene
+
+	genotype = [inputGene]
+
+	# Add convolution layers (and possibly pooling layers) until a random check fails
+	for i in range(numConv):
+		genotype.append(Conv())
+		genotype.append(Pool())
+
+	# Added all the Convolution layers, now add FC layers
+	for i in range(numFullConnected):
+		genotype.append(FullConnectProb())
+
+	return genotype
+
+

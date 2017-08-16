@@ -4,6 +4,7 @@
 
 from Gene import *
 
+
 class CNN_Individual:
 	"""
 	"""
