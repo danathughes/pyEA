@@ -11,6 +11,7 @@ POOL2D = "POOL2D"
 FULLY_CONNECTED = "FULLYCONNECTED"
 
 import random
+from models.parts import *
 
 class Gene:
 	"""
@@ -47,6 +48,14 @@ class Gene:
 	def mutate(self, prevGene, nextGene):
 		"""
 		Alter this gene, ensuring that the constraints from the previous and next gene are satisfied
+		"""
+
+		pass
+
+
+	def generateLayer(self, name_suffix):
+		"""
+		Create the CNN part(s) (tuple of objects) used to construct this particular layer in the CNN
 		"""
 
 		pass
