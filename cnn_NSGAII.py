@@ -97,6 +97,7 @@ class Individual:
 
 		self.name = 'cnn_%d' % counter.count
 		counter.increment()
+		
 
 	def calculateObjective(self):
 		"""
