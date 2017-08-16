@@ -2,6 +2,17 @@
 ##
 ##
 
+"""
+1. What is the dimensionality for each gene type?
+
+INPUT - [ m * n * k] ???
+
+2. Can we sample on a Gaussion distribution to get the number of conv and pooling?
+	Also number of fully connected?
+
+"""
+
+
 # Enumerate the different gene types
 INPUT = "INPUT"
 CONV1D = "CONV1D"
@@ -93,10 +104,8 @@ class InputGene(Gene):
 	def mutate(self, prevGene, nextGene):
 		"""
 		"""
-
-		pass
-
-
+		assert prevGene is None, "The input should not have previous gene!"
+		print "You are mutating an input, not allowed!"
 
 
 class Conv1DGene(Gene):
@@ -117,20 +126,34 @@ class Conv1DGene(Gene):
 
 	def canFollow(self, prevGene):
 		"""
+		A Conv1Dgene can follow an 'InputGene' or an 'Pool1DGene'
+		The constraints are kernel_size should not larger than prevGene.output_size
 		"""
-
-		pass
+		if prevGene.type == INPUT or prevGene.type == Pool1DGene:
+			## next step is to see if 
+			output_size = outputDimension(prevGene)		## calculate output dimension
+			if self.kernel_size > output_size:
+				return False
+			else return True
+		else
+			return False
 
 
 	def outputDimension(self, prevGene):
 		"""
+		Calculate the output dimension based on the input dimension, kernel_size, and stride
 		"""
 
-		pass
+		input_size = prevGene.dimensionality
+		output_size = (input_size-self.kernel_size)/stride + 1
+
+		self.dimensionality = output_size
+		return self.dimensionality
 
 
 	def mutate(self, prevGene, nextGene):
 		"""
+		kernel_size, stride and num_filters should be mutated based on the constraints from prevGene and nextGene
 		"""
 
 		pass
@@ -155,20 +178,34 @@ class Conv2DGene(Gene):
 
 	def canFollow(self, prevGene):
 		"""
+		A Conv2Dgene can follow an 'InputGene' or an 'Pool2DGene'
+		The constraints are kernel_size should not larger than prevGene.output_size
 		"""
-
-		pass
+		if prevGene.type == INPUT or prevGene.type == Pool2DGene:
+			## next step is to see if 
+			output_size = outputDimension(prevGene)		## calculate output dimension
+			if self.kernel_size > output_size:
+				return False
+			else return True
+		else
+			return False
 
 
 	def outputDimension(self, prevGene):
 		"""
+		Calculate the output dimension based on the input dimension, kernel_size, and stride
 		"""
 
-		pass
+		input_size = prevGene.dimensionality
+		output_size = (input_size-self.kernel_size)/stride + 1
+
+		self.dimensionality = output_size
+		return self.dimensionality
 
 
 	def mutate(self, prevGene, nextGene):
 		"""
+		kernel_size, stride and num_filters should be mutated based on the constraints from prevGene and nextGene
 		"""
 
 		pass
@@ -191,20 +228,33 @@ class Pool1DGene(Gene):
 
 	def canFollow(self, prevGene):
 		"""
+		A Pool1DGene can only follow an 'Conv1DGene'
 		"""
-
-		pass
+		if prevGene.type == Conv1DGene:
+			## next step is to see if 
+			output_size = outputDimension(prevGene)		## calculate output dimension
+			if self.kernel_size > output_size:
+				return False
+			else return True
+		else
+			return False
 
 
 	def outputDimension(self, prevGene):
 		"""
+		Calculate the output dimension based on the input dimension, kernel_size, and stride
 		"""
 
-		pass
+		input_size = prevGene.dimensionality
+		output_size = (input_size-self.kernel_size)/stride + 1
+
+		self.dimensionality = output_size
+		return self.dimensionality
 
 
 	def mutate(self, prevGene, nextGene):
 		"""
+		kernel_size, stride and num_filters should be mutated based on the constraints from prevGene and nextGene		
 		"""
 
 		pass
@@ -227,20 +277,33 @@ class Pool2DGene(Gene):
 
 	def canFollow(self, prevGene):
 		"""
+		A Pool2DGene can only follow an 'Conv2DGene'
 		"""
-
-		pass
+		if prevGene.type == Conv2DGene:
+			## next step is to see if 
+			output_size = outputDimension(prevGene)		## calculate output dimension
+			if self.kernel_size > output_size:
+				return False
+			else return True
+		else
+			return False
 
 
 	def outputDimension(self, prevGene):
 		"""
+		Calculate the output dimension based on the input dimension, kernel_size, and stride
 		"""
 
-		pass
+		input_size = prevGene.dimensionality
+		output_size = (input_size-self.kernel_size)/stride + 1
+
+		self.dimensionality = output_size
+		return self.dimensionality
 
 
 	def mutate(self, prevGene, nextGene):
 		"""
+		kernel_size, stride and num_filters should be mutated based on the constraints from prevGene and nextGene		
 		"""
 
 		pass
@@ -262,24 +325,36 @@ class FullyConnectedGene(Gene):
 
 	def canFollow(self, prevGene):
 		"""
+		A FullyConnectedGene can follow an 'Pool1DGene' or an 'Pool2DGene'
 		"""
-
-		pass
+		if prevGene.type == Conv1DGene or prevGene.type == Conv2DGene:
+			## next step is to see if 
+			output_size = outputDimension(prevGene)		## calculate output dimension
+			if self.kernel_size > output_size:
+				return False
+			else return True
+		else
+			return False
 
 
 	def outputDimension(self, prevGene):
 		"""
+		Calculate the output dimension based on the input dimension, kernel_size, and stride
 		"""
 
-		pass
+		input_size = prevGene.dimensionality
+		output_size = (input_size-self.kernel_size)/stride + 1
+
+		self.dimensionality = output_size
+		return self.dimensionality
 
 
 	def mutate(self, prevGene, nextGene):
 		"""
+		kernel_size, stride and num_filters should be mutated based on the constraints from prevGene and nextGene		
 		"""
 
 		pass
-
 
 
 def generateGenotype(inputGene, ConvProb=0.5, PoolProb=1.0, FullConnectProb = 0.5, is2D=False):
@@ -289,29 +364,27 @@ def generateGenotype(inputGene, ConvProb=0.5, PoolProb=1.0, FullConnectProb = 0.
 
 	# Pick out the appropriate Gene types
 	if is2D:
-		Conv = Conv2DGene
-		Pool = Pool2DGene
+		ConvGene = Conv2DGene
+		PoolGene = Pool2DGene
 	else:
-		Conv = Conv1DGene
-		Pool = Pool1DGene
+		ConvGene = Conv1DGene
+		PoolGene = Pool1DGene
 
 	genotype = [inputGene]
 
 	# Add convolution layers (and possibly pooling layers) until a random check fails
 	while random.random() < ConvProb:
 		# Add the Convolution layer, with random arguments...
-		genotype.append(Conv())
+		genotype.append(ConvGene())
 
 		# Should a pooling layer be added?
 		if random.random() < PoolProb:
-			genotype.append(Pool())
-
+			genotype.append(PoolGene())
 
 	# Added all the Convolution layers, now add FC layers
 	while random.random() < FullConnectProb:
 		# Add a fully connected layer
-		genotype.append(FullConnectProb())
-
+		genotype.append(FullyConnectedGene())
 
 	return genotype
 
@@ -323,22 +396,22 @@ def generateGenotypeA(inputGene, numConv, numFullConnected, is2D=False):
 
 	# Pick out the appropriate Gene types
 	if is2D:
-		Conv = Conv2DGene
-		Pool = Pool2DGene
+		ConvGene = Conv2DGene
+		PoolGene = Pool2DGene
 	else:
-		Conv = Conv1DGene
-		Pool = Pool1DGene
+		ConvGene = Conv1DGene
+		PoolGene = Pool1DGene
 
 	genotype = [inputGene]
 
 	# Add convolution layers (and possibly pooling layers) until a random check fails
 	for i in range(numConv):
-		genotype.append(Conv())
-		genotype.append(Pool())
+		genotype.append(ConvGene())
+		genotype.append(PoolGene())
 
 	# Added all the Convolution layers, now add FC layers
 	for i in range(numFullConnected):
-		genotype.append(FullConnectProb())
+		genotype.append(FullyConnectedGene())
 
 	return genotype
 

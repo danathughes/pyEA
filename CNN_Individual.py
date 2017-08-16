@@ -13,7 +13,7 @@ class CNN_Individual:
 		"""
 		"""
 
-		pass
+		self.genotype = generateGenotyp(inputGene, ConvProb=0.5, PoolProb=1.0, FullConnectProb = 0.5, is2D=False)
 
 
 	def crossover(self, otherIndividual, crossover_rate):
