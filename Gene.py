@@ -7,7 +7,9 @@
 
 INPUT - [ m * n * k] ???
 
-2. Can we sample on a Gaussion distribution to get the number of conv and pooling?
+2. Constraints on kernel_size, stripe or num_kernels when generating random Genes?
+
+3. Can we sample on a Gaussion distribution to get the number of conv and pooling?
 	Also number of fully connected?
 
 """
@@ -325,15 +327,13 @@ class FullyConnectedGene(Gene):
 
 	def canFollow(self, prevGene):
 		"""
-		A FullyConnectedGene can follow an 'Pool1DGene' or an 'Pool2DGene'
+		A FullyConnectedGene can follow an 'Pool1DGene', an 'Pool2DGene' or another 'FullyConnectedGene'
 		"""
 		if prevGene.type == Conv1DGene or prevGene.type == Conv2DGene:
-			## next step is to see if 
-			output_size = outputDimension(prevGene)		## calculate output dimension
-			if self.kernel_size > output_size:
-				return False
-			else return True
-		else
+			return True
+		else if prevGene.type == FullyConnectedGene:
+			if prevGene.dimensionality < self.dim
+		else:
 			return False
 
 
@@ -357,7 +357,7 @@ class FullyConnectedGene(Gene):
 		pass
 
 
-def generateGenotype(inputGene, ConvProb=0.5, PoolProb=1.0, FullConnectProb = 0.5, is2D=False):
+def generateGenotypeProb(inputGene, ConvProb=0.5, PoolProb=1.0, FullConnectProb = 0.5, is2D=False):
 	"""
 	Create a list of genes that describes a random, valid CNN
 	"""
@@ -370,26 +370,26 @@ def generateGenotype(inputGene, ConvProb=0.5, PoolProb=1.0, FullConnectProb = 0.
 		ConvGene = Conv1DGene
 		PoolGene = Pool1DGene
 
-	genotype = [inputGene]
+	genotype = [InputGene(None)]
 
 	# Add convolution layers (and possibly pooling layers) until a random check fails
 	while random.random() < ConvProb:
 		# Add the Convolution layer, with random arguments...
-		genotype.append(ConvGene())
+		genotype.append(ConvGene(None))
 
 		# Should a pooling layer be added?
 		if random.random() < PoolProb:
-			genotype.append(PoolGene())
+			genotype.append(PoolGene(None))
 
 	# Added all the Convolution layers, now add FC layers
 	while random.random() < FullConnectProb:
 		# Add a fully connected layer
-		genotype.append(FullyConnectedGene())
+		genotype.append(FullyConnectedGene(None))
 
 	return genotype
 
 
-def generateGenotypeA(inputGene, numConv, numFullConnected, is2D=False):
+def generateGenotypeNum(inputGene, numConv, numFullConnected, is2D=False):
 	"""
 	Create a list of genes that describes a random, valid CNN
 	"""
@@ -402,16 +402,16 @@ def generateGenotypeA(inputGene, numConv, numFullConnected, is2D=False):
 		ConvGene = Conv1DGene
 		PoolGene = Pool1DGene
 
-	genotype = [inputGene]
+	genotype = [InputGene(None)]
 
 	# Add convolution layers (and possibly pooling layers) until a random check fails
 	for i in range(numConv):
-		genotype.append(ConvGene())
-		genotype.append(PoolGene())
+		genotype.append(ConvGene(None))
+		genotype.append(PoolGene(None))
 
 	# Added all the Convolution layers, now add FC layers
 	for i in range(numFullConnected):
-		genotype.append(FullyConnectedGene())
+		genotype.append(FullyConnectedGene(None))
 
 	return genotype
 

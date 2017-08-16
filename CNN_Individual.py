@@ -2,6 +2,12 @@
 ##
 ##
 
+
+"""
+3. Evaluate individual
+
+"""
+
 from Gene import *
 
 
@@ -9,11 +15,12 @@ class CNN_Individual:
 	"""
 	"""
 
-	def __init__(self):
+	def __init__(self, generateGenotype=generateGenotypeProb):
 		"""
 		"""
 
-		self.genotype = generateGenotyp(inputGene, ConvProb=0.5, PoolProb=1.0, FullConnectProb = 0.5, is2D=False)
+		self.genotype = self.generateGenotype(inputGene, ConvProb=0.5, PoolProb=1.0, FullConnectProb = 0.5, is2D=False)
+		self.objective = None
 
 
 	def crossover(self, otherIndividual, crossover_rate):

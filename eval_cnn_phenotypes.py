@@ -67,15 +67,15 @@ def load_cnn_layers(filename):
   lines = f.readlines()
   f.close()
 
-  layers = []
+  cnn_layer_list = []
 
   for line in lines:
     line = line.strip().split(',')
     data = [int(l) for l in line[1:]]
     data = [line[0]] + data
-    layers.append(data)
+    cnn_layer_list.append(data)
 
-  return layers
+  return cnn_layer_list
 
 
 def write_results(filename, results):
