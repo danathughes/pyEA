@@ -26,6 +26,46 @@ FULLY_CONNECTED = "FULLYCONNECTED"
 import random
 from models.parts import *
 
+"""
+def createCNNgenotype(N=2):
+	"""
+	# Create an N layer (conv-pool) CNN encoding
+	"""
+
+	MIN_CNN_WIDTH = 2
+	MAX_CNN_WIDTH = 75
+	MIN_CNN_KERNELS = 5
+	MAX_CNN_KERNELS = 30
+	MIN_CNN_STRIDE = 1
+	MAX_CNN_STRIDE = 5
+	MIN_POOL_SIZE = 2
+	MAX_POOL_SIZE = 5
+	MIN_POOL_STRIDE = 1
+	MAX_POOL_STRIDE = 5
+	MIN_FULL_CONNECTION = 5
+	MAX_FULL_CONNECTION = 200
+
+	# Genotype is [CNN_width, num_CNN_kernels, CNN_stride, pool_size, pool_stride] * N
+	# followed by number of full connections.  In total, an integer string of length 
+	# 5*N+1.
+
+	genotype = [0]*(5*N+1)
+
+	# Fill in the CNN and pooling layer encodings
+	for i in range(N):
+		genotype[5*i+0] = np.random.randint(MIN_CNN_WIDTH, MAX_CNN_WIDTH+1)
+		genotype[5*i+1] = np.random.randint(MIN_CNN_KERNELS, MAX_CNN_KERNELS+1)
+		genotype[5*i+2] = np.random.randint(MIN_CNN_STRIDE, MAX_CNN_STRIDE+1)
+		genotype[5*i+3] = np.random.randint(MIN_POOL_SIZE, MAX_POOL_SIZE+1)
+		genotype[5*i+4] = np.random.randint(MIN_POOL_STRIDE, MAX_POOL_STRIDE+1)
+
+	# Fill in the fully connected layer bit
+	genotype[5*N] = np.random.randint(MIN_FULL_CONNECTION, MAX_FULL_CONNECTION+1)
+
+	return genotype
+"""
+
+
 class Gene:
 	"""
 	An abstract gene.
@@ -136,8 +176,9 @@ class Conv1DGene(Gene):
 			output_size = outputDimension(prevGene)		## calculate output dimension
 			if self.kernel_size > output_size:
 				return False
-			else return True
-		else
+			else:
+				return True
+		else:
 			return False
 
 
@@ -188,8 +229,9 @@ class Conv2DGene(Gene):
 			output_size = outputDimension(prevGene)		## calculate output dimension
 			if self.kernel_size > output_size:
 				return False
-			else return True
-		else
+			else: 
+				return True
+		else:
 			return False
 
 
@@ -237,8 +279,9 @@ class Pool1DGene(Gene):
 			output_size = outputDimension(prevGene)		## calculate output dimension
 			if self.kernel_size > output_size:
 				return False
-			else return True
-		else
+			else: 
+				return True
+		else:
 			return False
 
 
@@ -332,7 +375,11 @@ class FullyConnectedGene(Gene):
 		if prevGene.type == Conv1DGene or prevGene.type == Conv2DGene:
 			return True
 		else if prevGene.type == FullyConnectedGene:
-			if prevGene.dimensionality < self.dim
+			## Should the num of nodes of the following fully-connected layer be smaller???
+			if prevGene.dimensionality < self.dimensionality:
+				return False
+			else:
+				return True
 		else:
 			return False
 

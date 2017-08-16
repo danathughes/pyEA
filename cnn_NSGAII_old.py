@@ -11,9 +11,51 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from CNN_Individual import *
-
 import os, sys
+
+def createCNNgenotype(N=2):
+	"""
+	Create an N layer (conv-pool) CNN encoding
+	"""
+
+	MIN_CNN_WIDTH = 2
+	MAX_CNN_WIDTH = 75
+	MIN_CNN_KERNELS = 5
+	MAX_CNN_KERNELS = 30
+	MIN_CNN_STRIDE = 1
+	MAX_CNN_STRIDE = 5
+	MIN_POOL_SIZE = 2
+	MAX_POOL_SIZE = 5
+	MIN_POOL_STRIDE = 1
+	MAX_POOL_STRIDE = 5
+	MIN_FULL_CONNECTION = 5
+	MAX_FULL_CONNECTION = 200
+
+	# Genotype is [CNN_width, num_CNN_kernels, CNN_stride, pool_size, pool_stride] * N
+	# followed by number of full connections.  In total, an integer string of length 
+	# 5*N+1.
+
+	genotype = [0]*(5*N+1)
+
+	# Fill in the CNN and pooling layer encodings
+	for i in range(N):
+		genotype[5*i+0] = np.random.randint(MIN_CNN_WIDTH, MAX_CNN_WIDTH+1)
+		genotype[5*i+1] = np.random.randint(MIN_CNN_KERNELS, MAX_CNN_KERNELS+1)
+		genotype[5*i+2] = np.random.randint(MIN_CNN_STRIDE, MAX_CNN_STRIDE+1)
+		genotype[5*i+3] = np.random.randint(MIN_POOL_SIZE, MAX_POOL_SIZE+1)
+		genotype[5*i+4] = np.random.randint(MIN_POOL_STRIDE, MAX_POOL_STRIDE+1)
+
+	# Fill in the fully connected layer bit
+	genotype[5*N] = np.random.randint(MIN_FULL_CONNECTION, MAX_FULL_CONNECTION+1)
+
+	return genotype
+
+
+def dummyObjective(gene):
+	"""
+	"""
+
+	return 0
 
 
 # Keep track of how many CNNs were created
@@ -31,16 +73,21 @@ class Counter:
 counter = Counter()
 
 
-class Individual(CNN_Individual):
+class Individual:
 	"""
 	An individual consists of a gene and an objective
 	"""
 
-	def __init__(self, generateGenotype=generateGenotypeProb, counter=counter):
+	def __init__(self, generatingFunction=createCNNgenotype, objectiveFunction=dummyObjective, counter=counter):
 		"""
 		Create a new individual using the gene generating function
 		"""
-		super().__init__(generateGenotype=generateGenotypeProb)
+
+		self.generatingFunction = generatingFunction
+		self.objectiveFunction = objectiveFunction
+
+		self.gene = generatingFunction()
+		self.objective = objectiveFunction(self.gene)
 
 		self.dominationSet = set()
 		self.numDominated = 0
@@ -50,6 +97,13 @@ class Individual(CNN_Individual):
 
 		self.name = 'cnn_%d' % counter.count
 		counter.increment()
+		
+
+	def calculateObjective(self):
+		"""
+		"""
+
+		self.objective = self.objectiveFunction(self.gene)
 
 
 	def dominates(self, other):
@@ -71,6 +125,53 @@ class Individual(CNN_Individual):
 
 		return dominates and dominate_one
 
+
+	def crossover(self, other, crossover_prob=0.5, calc_objectives=True):
+		"""
+		Spawn two offspring
+		"""
+
+		offspring_A = Individual(self.generatingFunction, self.objectiveFunction)
+		offspring_B = Individual(self.generatingFunction, self.objectiveFunction)
+
+		# Go through each chromosome and swap
+		for i in range(len(self.gene)):
+			c1 = self.gene[i]
+			c2 = other.gene[i]
+			# Should these chromosomes swap in the offspring?
+			if np.random.random() < crossover_prob:
+				offspring_A.gene[i] = c1
+				offspring_B.gene[i] = c2
+			else:
+				offspring_B.gene[i] = c1
+				offspring_A.gene[i] = c2
+
+		# Calculate the objectives of these offspring
+		if calc_objectives:
+			offspring_A.calculateObjective()
+			offspring_B.calculateObjective()
+
+		return offspring_A, offspring_B
+
+
+	def mutate(self, mutation_prob=0.1, calc_objectives=True):
+		"""
+		Mutate each chromosome with a random probability
+		"""
+
+		# Create a dummy gene to pull random ("mutated") chromosomes from
+		dummy_gene = self.generatingFunction()
+
+		# Mutate individual chromosomes as needed
+		for i in range(len(self.gene)):
+			if np.random.random() < mutation_prob:
+				self.gene[i] = dummy_gene[i]
+
+		# Calculate the new objective
+		if calc_objectives:
+			self.calculateObjective()
+
+		return
 
 
 ### Routine GA functions
