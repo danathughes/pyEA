@@ -31,16 +31,20 @@ class Counter:
 counter = Counter()
 
 
-class Individual(CNN_Individual):
+class Individual():
 	"""
 	An individual consists of a gene and an objective
 	"""
 
-	def __init__(self, generateGenotype=generateGenotypeProb, counter=counter):
+	def __init__(self, input_size=(200, 1), output_size=4, generateGenotype=generateGenotypeProb, counter=counter):
 		"""
 		Create a new individual using the gene generating function
 		"""
-		super().__init__(generateGenotype=generateGenotypeProb)
+		window_size, num_sensors = input_size
+		num_classes = output_size
+		self.cnn_inidvidual = CNN_Individual(window_size, num_sensors, num_classes, generateGenotype)
+		self.objective = (1.0e8, 1.0e8)
+		## super().__init__(generateGenotype=generateGenotypeProb)
 
 		self.dominationSet = set()
 		self.numDominated = 0
@@ -51,6 +55,11 @@ class Individual(CNN_Individual):
 		self.name = 'cnn_%d' % counter.count
 		counter.increment()
 
+	def crossover(self, otherIndividual):
+		self.cnn_inidvidual.crossover(otherIndividual.cnn_inidvidual)
+
+	def mutate(self):
+		self.cnn_inidvidual.mutate(mutate_rate)
 
 	def dominates(self, other):
 		"""
@@ -70,7 +79,6 @@ class Individual(CNN_Individual):
 			dominate_one = dominate_one or o1 < o2
 
 		return dominates and dominate_one
-
 
 
 ### Routine GA functions
@@ -142,7 +150,7 @@ class NSGA_II:
 		assert population_size > 1, "Need a population of at least two to perform GA."
 
 		self.population_size = population_size
-		self.population = [Individual() for i in range(self.population_size)]
+		self.population = [Individual(generateGenotype=generateGenotypeProb) for i in range(self.population_size)]
 		self.generation = 0
 
 		self.selection = tournamentSelection
@@ -168,6 +176,7 @@ class NSGA_II:
 			parent2 = self.selection(self.population)
 
 			# Perform crossover and mutation
+			## Do we need make sure that they are valid ?
 			offspring1, offspring2 = parent1.crossover(parent2)
 			offspring1.mutate()
 			offspring2.mutate()

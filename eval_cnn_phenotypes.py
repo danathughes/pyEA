@@ -21,7 +21,7 @@ import sys
 # Windowing information
 WINDOW_SIZE = 200
 NUM_SENSORS = 1
-NUM_CLASSES = 4           
+NUM_CLASSES = 4
 
 BATCH_SIZE = 50
 WEIGHT_DECAY_RATE = 1e-8
@@ -139,7 +139,6 @@ if __name__ == '__main__':
   target_tensor = tf.placeholder(tf.float32, (None, NUM_CLASSES))
 
   print "Building CNN Models...",
-
   cnns = {}
   cnn_names = []
   results = {}

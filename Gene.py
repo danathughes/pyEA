@@ -26,44 +26,19 @@ FULLY_CONNECTED = "FULLYCONNECTED"
 import random
 from models.parts import *
 
-"""
-def createCNNgenotype(N=2):
-	"""
-	# Create an N layer (conv-pool) CNN encoding
-	"""
 
-	MIN_CNN_WIDTH = 2
-	MAX_CNN_WIDTH = 75
-	MIN_CNN_KERNELS = 5
-	MAX_CNN_KERNELS = 30
-	MIN_CNN_STRIDE = 1
-	MAX_CNN_STRIDE = 5
-	MIN_POOL_SIZE = 2
-	MAX_POOL_SIZE = 5
-	MIN_POOL_STRIDE = 1
-	MAX_POOL_STRIDE = 5
-	MIN_FULL_CONNECTION = 5
-	MAX_FULL_CONNECTION = 200
-
-	# Genotype is [CNN_width, num_CNN_kernels, CNN_stride, pool_size, pool_stride] * N
-	# followed by number of full connections.  In total, an integer string of length 
-	# 5*N+1.
-
-	genotype = [0]*(5*N+1)
-
-	# Fill in the CNN and pooling layer encodings
-	for i in range(N):
-		genotype[5*i+0] = np.random.randint(MIN_CNN_WIDTH, MAX_CNN_WIDTH+1)
-		genotype[5*i+1] = np.random.randint(MIN_CNN_KERNELS, MAX_CNN_KERNELS+1)
-		genotype[5*i+2] = np.random.randint(MIN_CNN_STRIDE, MAX_CNN_STRIDE+1)
-		genotype[5*i+3] = np.random.randint(MIN_POOL_SIZE, MAX_POOL_SIZE+1)
-		genotype[5*i+4] = np.random.randint(MIN_POOL_STRIDE, MAX_POOL_STRIDE+1)
-
-	# Fill in the fully connected layer bit
-	genotype[5*N] = np.random.randint(MIN_FULL_CONNECTION, MAX_FULL_CONNECTION+1)
-
-	return genotype
-"""
+MIN_CNN_WIDTH = 2
+MAX_CNN_WIDTH = 75
+MIN_CNN_KERNELS = 5
+MAX_CNN_KERNELS = 30
+MIN_CNN_STRIDE = 1
+MAX_CNN_STRIDE = 5
+MIN_POOL_SIZE = 2
+MAX_POOL_SIZE = 5
+MIN_POOL_STRIDE = 1
+MAX_POOL_STRIDE = 5
+MIN_FULL_CONNECTION = 5
+MAX_FULL_CONNECTION = 200
 
 
 class Gene:
@@ -119,28 +94,30 @@ class InputGene(Gene):
 	"""
 	"""
 
-	def __init__(self, dimensionality):
+	def __init__(self, input_size):
 		"""
 		Placeholder gene for the input dimensionality of the problem set
 		"""
 
-		self.dimensionality = dimensionality
+		self.dimension = input_size
 		self.type = INPUT
 
 
-	def canFollow(self, prevGene):
+	def canFollow(self, prevGene=None):
 		"""
 		This never follows a gene, it's the input
 		"""
+		if prevGene is not None:
+			return False
+		else:
+			return True
 
-		return False
 
-
-	def outputDimension(self, prevGene):
+	def outputDimension(self, prevGene=None):
 		"""
 		"""
-
-		return self.dimensionality
+		assert prevGene is None, "There shouldn't be prevGene for InputGene!"
+		return self.dimension
 
 
 	def mutate(self, prevGene, nextGene):
@@ -154,13 +131,13 @@ class Conv1DGene(Gene):
 	"""
 	"""
 
-	def __init__(self, kernel_size, stride, num_filters, activation_function):
+	def __init__(self, kernel_size, stride, num_kernels, activation_function):
 		"""
 		"""
 
 		self.kernel_size = kernel_size
 		self.stride = stride
-		self.num_filters = num_filters
+		self.num_kernels = num_kernels
 		self.activation = activation_function
 
 		self.type = CONV1D
@@ -190,13 +167,13 @@ class Conv1DGene(Gene):
 		input_size = prevGene.dimensionality
 		output_size = (input_size-self.kernel_size)/stride + 1
 
-		self.dimensionality = output_size
-		return self.dimensionality
+		self.dimension = output_size
+		return self.dimension
 
 
 	def mutate(self, prevGene, nextGene):
 		"""
-		kernel_size, stride and num_filters should be mutated based on the constraints from prevGene and nextGene
+		kernel_size, stride and num_kernels should be mutated based on the constraints from prevGene and nextGene
 		"""
 
 		pass
@@ -207,13 +184,13 @@ class Conv2DGene(Gene):
 	"""
 	"""
 
-	def __init__(self, kernel_size, stride, num_filters, activation_function):
+	def __init__(self, kernel_size, stride, num_kernels, activation_function):
 		"""
 		"""
 
 		self.kernel_size = kernel_size
 		self.stride = stride
-		self.num_filters = num_filters
+		self.num_kernels = num_kernels
 		self.activation = activation_function
 
 		self.type = CONV2D
@@ -249,7 +226,7 @@ class Conv2DGene(Gene):
 
 	def mutate(self, prevGene, nextGene):
 		"""
-		kernel_size, stride and num_filters should be mutated based on the constraints from prevGene and nextGene
+		kernel_size, stride and num_kernels should be mutated based on the constraints from prevGene and nextGene
 		"""
 
 		pass
@@ -299,7 +276,7 @@ class Pool1DGene(Gene):
 
 	def mutate(self, prevGene, nextGene):
 		"""
-		kernel_size, stride and num_filters should be mutated based on the constraints from prevGene and nextGene		
+		kernel_size, stride and num_kernels should be mutated based on the constraints from prevGene and nextGene		
 		"""
 
 		pass
@@ -348,7 +325,7 @@ class Pool2DGene(Gene):
 
 	def mutate(self, prevGene, nextGene):
 		"""
-		kernel_size, stride and num_filters should be mutated based on the constraints from prevGene and nextGene		
+		kernel_size, stride and num_kernels should be mutated based on the constraints from prevGene and nextGene		
 		"""
 
 		pass
@@ -398,17 +375,55 @@ class FullyConnectedGene(Gene):
 
 	def mutate(self, prevGene, nextGene):
 		"""
-		kernel_size, stride and num_filters should be mutated based on the constraints from prevGene and nextGene		
+		kernel_size, stride and num_kernels should be mutated based on the constraints from prevGene and nextGene		
 		"""
 
 		pass
 
 
-def generateGenotypeProb(inputGene, ConvProb=0.5, PoolProb=1.0, FullConnectProb = 0.5, is2D=False):
-	"""
-	Create a list of genes that describes a random, valid CNN
-	"""
 
+"""
+# Helper function
+# randomly generate a ConvGene based on the lastGene's output dimension
+"""
+def generateConvGene(ConvGene, lastGene):
+	## specify the min and max for each random functions
+	kernel_size = np.random.randint(MIN_CNN_WIDTH, max_width+1)
+	conv_stride = np.random.randint(MIN_CNN_STRIDE, MAX_CNN_STRIDE+1)
+	num_kernels = np.random.randint(MIN_CNN_KERNELS, MAX_CNN_KERNELS+1)
+
+	# activation_function ???
+	return ConvGene(kernel_size, conv_stride, num_kernels, activation_function=None)
+
+"""
+# Helper function
+# randomly generate a PoolGene based on the lastGene's output dimension
+"""
+def generatePoolGene(PoolGene, lastGene):
+	## specify the min and max for each random functions
+	pool_size = np.random.randint(MIN_POOL_SIZE, MAX_POOL_SIZE+1)
+	pool_stride = np.random.randint(MIN_POOL_STRIDE, MAX_POOL_STRIDE+1)
+
+	# activation_function ???
+	return PoolGene(kernel_size, pool_stride, activation_function=None)
+
+
+"""
+# Helper function
+# randomly generate a FullyConnectedGene based on the lastGene's output dimension
+"""
+def generateConvGene(FullyConnectedGene, lastGene):
+	## specify the min and max for each random functions
+	size = np.random.randint(MIN_FULL_CONNECTION, MAX_FULL_CONNECTION+1)
+
+	# activation_function ???
+	return FullyConnectedGene(size, activation_function=None)
+
+
+"""
+Create a list of genes that describes a random, valid CNN
+"""
+def generateGenotypeProb(input_size, output_size, ConvProb=0.5, PoolProb=1.0, FullConnectProb = 0.5, is2D=False):
 	# Pick out the appropriate Gene types
 	if is2D:
 		ConvGene = Conv2DGene
@@ -417,48 +432,25 @@ def generateGenotypeProb(inputGene, ConvProb=0.5, PoolProb=1.0, FullConnectProb 
 		ConvGene = Conv1DGene
 		PoolGene = Pool1DGene
 
-	genotype = [InputGene(None)]
+	lastGene = InputGene(input_size)
+	genotype = [lastGene]
 
 	# Add convolution layers (and possibly pooling layers) until a random check fails
 	while random.random() < ConvProb:
 		# Add the Convolution layer, with random arguments...
-		genotype.append(ConvGene(None))
+		lastGene = generateConvGene(ConvGene, lastGene)
+		genotype.append(lastGene)
 
 		# Should a pooling layer be added?
 		if random.random() < PoolProb:
-			genotype.append(PoolGene(None))
+			lastGene = generatePoolGene(PoolGene, lastGene)
+			genotype.append(lastGene)
 
 	# Added all the Convolution layers, now add FC layers
 	while random.random() < FullConnectProb:
 		# Add a fully connected layer
-		genotype.append(FullyConnectedGene(None))
-
-	return genotype
-
-
-def generateGenotypeNum(inputGene, numConv, numFullConnected, is2D=False):
-	"""
-	Create a list of genes that describes a random, valid CNN
-	"""
-
-	# Pick out the appropriate Gene types
-	if is2D:
-		ConvGene = Conv2DGene
-		PoolGene = Pool2DGene
-	else:
-		ConvGene = Conv1DGene
-		PoolGene = Pool1DGene
-
-	genotype = [InputGene(None)]
-
-	# Add convolution layers (and possibly pooling layers) until a random check fails
-	for i in range(numConv):
-		genotype.append(ConvGene(None))
-		genotype.append(PoolGene(None))
-
-	# Added all the Convolution layers, now add FC layers
-	for i in range(numFullConnected):
-		genotype.append(FullyConnectedGene(None))
+		lastGene = generateFullConnectedGene(FullyConnectedGene, lastGene)
+		genotype.append(lastGene)
 
 	return genotype
 

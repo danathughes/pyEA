@@ -16,15 +16,18 @@ class CNN_Individual:
 	"""
 	"""
 
-	def __init__(self, generateGenotype=generateGenotypeProb):
+	def __init__(self, input_size, output_size, generateGenotype):
 		"""
 		"""
-		if generateGenotype is not None:
-			self.genotype = self.generateGenotype(inputGene, ConvProb=0.5, PoolProb=1.0, FullConnectProb = 0.5, is2D=False)
+		self.input_size = input_size
+		self.output_size = output_size
+		self.generateGenotype = generateGenotype
+		if self.generateGenotype is not None:
+			self.genotype = self.generateGenotype(input_size, output_size, ConvProb=0.5, PoolProb=1.0, FullConnectProb = 0.5, is2D=False)
 			## How can we correct the genotype if it is not valid ???
 		else:
 			self.genotype = None
-		self.objective = (1.0e8, 1.0e8)
+		
 
 
 	def __checkValidity(self):
@@ -46,13 +49,13 @@ class CNN_Individual:
 		pass
 
 
-	def crossover(self, otherInd, crossover_rate=None):
+	def crossover(self, otherIndividual, crossover_rate=None):
 		"""
 		Return two children using the other individual as a second parent
 		"""
 
-		offspring_A = Individual(generateGenotype=None)
-		offspring_B = Individual(generateGenotype=None)
+		offspring_A = CNN_Individual(self.input_size, self.output_size, generateGenotype=None)
+		offspring_B = CNN_Individual(self.input_size, self.output_size, generateGenotype=None)
 
 		# one-point crossover
 		# select one position 'i_A' in self.genotype, and select one feasible position 'i_B' in otherInd.genotype
@@ -100,56 +103,4 @@ class CNN_Individual:
 		"""
 
 		pass
-
-
-
-"""
-
-	def crossover(self, other, crossover_prob=0.5, calc_objectives=True):
-		"""
-		# Spawn two offspring
-		"""
-
-		offspring_A = Individual(self.generatingFunction, self.objectiveFunction)
-		offspring_B = Individual(self.generatingFunction, self.objectiveFunction)
-
-		# Go through each chromosome and swap
-		for i in range(len(self.gene)):
-			c1 = self.gene[i]
-			c2 = other.gene[i]
-			# Should these chromosomes swap in the offspring?
-			if np.random.random() < crossover_prob:
-				offspring_A.gene[i] = c1
-				offspring_B.gene[i] = c2
-			else:
-				offspring_B.gene[i] = c1
-				offspring_A.gene[i] = c2
-
-		# Calculate the objectives of these offspring
-		if calc_objectives:
-			offspring_A.calculateObjective()
-			offspring_B.calculateObjective()
-
-		return offspring_A, offspring_B
-
-
-	def mutate(self, mutation_prob=0.1, calc_objectives=True):
-		"""
-		# Mutate each chromosome with a random probability
-		"""
-
-		# Create a dummy gene to pull random ("mutated") chromosomes from
-		dummy_gene = self.generatingFunction()
-
-		# Mutate individual chromosomes as needed
-		for i in range(len(self.gene)):
-			if np.random.random() < mutation_prob:
-				self.gene[i] = dummy_gene[i]
-
-		# Calculate the new objective
-		if calc_objectives:
-			self.calculateObjective()
-
-		return
-
-"""				
+			
