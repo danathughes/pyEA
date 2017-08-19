@@ -89,7 +89,6 @@ class Gene:
 		pass
 
 
-
 class InputGene(Gene):
 	"""
 	"""
@@ -177,7 +176,6 @@ class Conv1DGene(Gene):
 		"""
 
 		pass
-
 
 
 class Conv2DGene(Gene):

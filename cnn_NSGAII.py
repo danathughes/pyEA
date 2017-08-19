@@ -40,11 +40,8 @@ class Individual():
 		"""
 		Create a new individual using the gene generating function
 		"""
-		window_size, num_sensors = input_size
-		num_classes = output_size
-		self.cnn_inidvidual = CNN_Individual(window_size, num_sensors, num_classes, generateGenotype)
+		self.cnn_inidvidual = CNN_Individual(input_size, output_size, generateGenotype)
 		self.objective = (1.0e8, 1.0e8)
-		## super().__init__(generateGenotype=generateGenotypeProb)
 
 		self.dominationSet = set()
 		self.numDominated = 0

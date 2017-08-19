@@ -95,12 +95,4 @@ class CNN_Individual:
 					curGene = None				
 
 				self.genotype[pos].mutate(preGene, curGene)
-
-
-	def generatePhenotype(self):
-		"""
-		Do we need this?
-		"""
-
-		pass
 			
