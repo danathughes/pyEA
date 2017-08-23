@@ -112,12 +112,24 @@ def tournamentSelection(population, k=2, p=0.5):
 
 def write_file(filename, population):
 	"""
+	convet to format like ['cnn_xxx', 'INPUT', kernel_size, stride, num_kernels, 'CONV1D', kernel_size, stride, 'FULLY_CONNECTED', size]
 	"""
 
 	f = open(filename, 'w')
 	for p in population:
 		name = p.name
-		data = ','.join([str(g) for g in p.gene])
+		data_genes = []
+		for gene in p.genotype:
+			if gene.type in [INPUT, CONV1D, CONV2D]:
+				data = ','.join([str(gene.type), str(gene.kernel_size), str(gene.stride), str(gene.num_kernels)])
+				data_genes.append(data)
+			else if gene.type in [POOL1D, POOL2D]:
+				data = ','.join([str(gene.type), str(gene.kernel_size), str(gene.stride)])
+				data_genes.append(data)				
+			else: # fully_connected
+				data = ','.join([str(gene.type), str(gene.size)])
+				data_genes.append(data)
+		data = ','.join(data_genes)
 		f.write(name + ',' + data + '\n')
 	f.close()
 

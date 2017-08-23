@@ -33,34 +33,33 @@ NUM_EPOCHS = 500
 
 DATA_FILE = 'maro_dataset.pkl'
 
-def decode_layers(_phenotype):
+def decode_layers(_genotype):
+  """
+  ['cnn_xxx', ('INPUT', kernel_size, stride, num_kernels), ('CONV1D', kernel_size, stride), ('FULLY_CONNECTED', size)] to layers
+  """
   layers = []
 
   # Disregard the layer name
-  phenotype = _phenotype[1:]
-  N = (len(phenotype) - 1) / 5
+  genotype = _genotype[1:]
 
-  for i in range(N):
-    cnn_width = phenotype[5*i+0]
-    cnn_kernels = phenotype[5*i+1]
-    cnn_stride = phenotype[5*i+2]
-    pool_size = phenotype[5*i+3]
-    pool_stride = phenotype[5*i+4]
-
-    layers.append(Convolutional1D(cnn_width, cnn_kernels, stride=cnn_stride, name='conv%d'%i))
-    layers.append(Pool1D(pool_size, stride=pool_stride, name='pool%d'%i))
-    layers.append(ReLU(name='relu%d'%i))
-
-  # Do the fully connected layer
-  fc_size = phenotype[5*N]
-  layers.append(Flatten(name='flatten'))
-  layers.append(FullConnection(fc_size, name='full_connection'))
+  for gene in genotype:
+    if gene[0] in [INPUT, CONV1D, CONV2D]:
+      layers.append(Convolutional1D(gene[1], gene[3], stride=gene[2]))
+    else if gene[0] in [POOL1D, POOL2D]:
+      layers.append(Pool1D(gene[1], stride=gene[2]))
+      layers.append(ReLU())
+    else:
+      # Do the fully connected layer
+      layers.append(Flatten())
+      layers.append(FullConnection(gene[1]))
 
   return layers
 
 
 def load_cnn_layers(filename):
   """
+  convert  ['cnn_xxx', 'INPUT', kernel_size, stride, num_kernels, 'CONV1D', kernel_size, stride, 'FULLY_CONNECTED', size] to
+  ['cnn_xxx', ('INPUT', kernel_size, stride, num_kernels), ('CONV1D', kernel_size, stride), ('FULLY_CONNECTED', size)]
   """
 
   f = open(filename)
@@ -71,8 +70,28 @@ def load_cnn_layers(filename):
 
   for line in lines:
     line = line.strip().split(',')
-    data = [int(l) for l in line[1:]]
-    data = [line[0]] + data
+    data = [line[0]]
+    i = 1
+    while i< len(line):
+      if line[i] in [INPUT, CONV1D, CONV2D]:
+        gene_type = line[i]
+        kernel_size = int(line[i+1])
+        stride = int(line[i+2])
+        num_kernels = int(line[i+3])
+        data.append( (gene_type, kernel_size, stride, num_kernels) )
+        i = i+4
+      else if line[i] in [POOL1D, POOL2D]:
+        gene_type = line[i]
+        kernel_size = int(line[i+1])
+        stride = int(line[i+2])
+        data.append( (gene_type, kernel_size, stride) )
+        i = i+3     
+      else: # fully_connected
+        gene_type = line[i]
+        size = int(line[i+1])
+        data.append( (gene_type, size) )
+        i = i+2
+
     cnn_layer_list.append(data)
 
   return cnn_layer_list
