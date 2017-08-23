@@ -65,7 +65,7 @@ class Gene:
 		pass
 
 
-	def outputDimension(self, prevGene):
+	def __outputDimension(self, prevGene):
 		"""
 		What is the dimensionality of the output of this gene?
 		"""
@@ -112,7 +112,7 @@ class InputGene(Gene):
 			return True
 
 
-	def outputDimension(self, prevGene=None):
+	def __outputDimension(self, prevGene=None):
 		"""
 		"""
 		assert prevGene is None, "There shouldn't be prevGene for InputGene!"
@@ -140,6 +140,7 @@ class Conv1DGene(Gene):
 		self.activation = activation_function
 
 		self.type = CONV1D
+		self.dimension = None
 
 
 	def canFollow(self, prevGene):
@@ -149,24 +150,25 @@ class Conv1DGene(Gene):
 		"""
 		if prevGene.type == INPUT or prevGene.type == Pool1DGene:
 			## next step is to see if 
-			output_size = outputDimension(prevGene)		## calculate output dimension
-			if self.kernel_size > output_size:
+			height, width, channels = prevGene.dimension
+			if self.kernel_size > height:
 				return False
 			else:
+				self.__outputDimension(prevGene)
 				return True
 		else:
 			return False
 
 
-	def outputDimension(self, prevGene):
+	def __outputDimension(self, prevGene):
 		"""
 		Calculate the output dimension based on the input dimension, kernel_size, and stride
 		"""
 
-		input_size = prevGene.dimensionality
-		output_size = (input_size-self.kernel_size)/stride + 1
+		height, width, channels = prevGene.dimension
+		height = (height-self.kernel_size)/self.stride + 1
 
-		self.dimension = output_size
+		self.dimension = (height, width, self.num_kernels)
 		return self.dimension
 
 
@@ -192,6 +194,7 @@ class Conv2DGene(Gene):
 		self.activation = activation_function
 
 		self.type = CONV2D
+		self.dimension = None
 
 
 	def canFollow(self, prevGene):
@@ -201,25 +204,27 @@ class Conv2DGene(Gene):
 		"""
 		if prevGene.type == INPUT or prevGene.type == Pool2DGene:
 			## next step is to see if 
-			output_size = outputDimension(prevGene)		## calculate output dimension
-			if self.kernel_size > output_size:
+			height, width, channels = prevGene.dimension
+			if self.kernel_size > height or self.kernel_size > width:
 				return False
-			else: 
+			else:
+				self.__outputDimension(prevGene)
 				return True
 		else:
 			return False
 
 
-	def outputDimension(self, prevGene):
+	def __outputDimension(self, prevGene):
 		"""
 		Calculate the output dimension based on the input dimension, kernel_size, and stride
 		"""
 
-		input_size = prevGene.dimensionality
-		output_size = (input_size-self.kernel_size)/stride + 1
+		height, width, channels = prevGene.dimension
+		height = (height-self.kernel_size)/self.stride + 1
+		width = (width-self.kernel_size)/self.stride + 1
 
-		self.dimensionality = output_size
-		return self.dimensionality
+		self.dimension = (height, width, self.num_kernels)
+		return self.dimension
 
 
 	def mutate(self, prevGene, nextGene):
@@ -243,6 +248,7 @@ class Pool1DGene(Gene):
 		self.activation = activation_function
 
 		self.type = POOL1D
+		self.dimension = None
 
 
 	def canFollow(self, prevGene):
@@ -250,26 +256,27 @@ class Pool1DGene(Gene):
 		A Pool1DGene can only follow an 'Conv1DGene'
 		"""
 		if prevGene.type == Conv1DGene:
-			## next step is to see if 
-			output_size = outputDimension(prevGene)		## calculate output dimension
-			if self.kernel_size > output_size:
+			## next step is to see if
+			height, width, channels = prevGene.dimension 
+			if self.kernel_size > height:
 				return False
-			else: 
+			else:
+				self.__outputDimension(prevGene)
 				return True
 		else:
 			return False
 
 
-	def outputDimension(self, prevGene):
+	def __outputDimension(self, prevGene):
 		"""
 		Calculate the output dimension based on the input dimension, kernel_size, and stride
 		"""
 
-		input_size = prevGene.dimensionality
-		output_size = (input_size-self.kernel_size)/stride + 1
+		height, width, channels = prevGene.dimension
+		height = (height-self.kernel_size)/self.stride + 1
 
-		self.dimensionality = output_size
-		return self.dimensionality
+		self.dimension = (height, width, channels)
+		return self.dimension
 
 
 	def mutate(self, prevGene, nextGene):
@@ -293,6 +300,7 @@ class Pool2DGene(Gene):
 		self.activation = activation_function
 
 		self.type = POOL2D
+		self.dimension = None
 
 
 	def canFollow(self, prevGene):
@@ -301,24 +309,27 @@ class Pool2DGene(Gene):
 		"""
 		if prevGene.type == Conv2DGene:
 			## next step is to see if 
-			output_size = outputDimension(prevGene)		## calculate output dimension
-			if self.kernel_size > output_size:
+			height, width, channels = prevGene.dimension
+			if self.kernel_size > height or self.kernel_size > width:
 				return False
-			else return True
+			else:
+				self.__outputDimension(prevGene)
+				return True
 		else
 			return False
 
 
-	def outputDimension(self, prevGene):
+	def __outputDimension(self, prevGene):
 		"""
 		Calculate the output dimension based on the input dimension, kernel_size, and stride
 		"""
 
-		input_size = prevGene.dimensionality
-		output_size = (input_size-self.kernel_size)/stride + 1
+		height, width, channels = prevGene.dimension
+		height = (height-self.kernel_size)/self.stride + 1
+		width = (width-self.kernel_size)/self.stride + 1
 
-		self.dimensionality = output_size
-		return self.dimensionality
+		self.dimension = (height, width, channels)
+		return self.dimension
 
 
 	def mutate(self, prevGene, nextGene):
@@ -341,34 +352,25 @@ class FullyConnectedGene(Gene):
 		self.activation = activation_function
 
 		self.type = FULLY_CONNECTED
+		self.dimension = size
 
 
 	def canFollow(self, prevGene):
 		"""
 		A FullyConnectedGene can follow an 'Pool1DGene', an 'Pool2DGene' or another 'FullyConnectedGene'
 		"""
-		if prevGene.type == Conv1DGene or prevGene.type == Conv2DGene:
+		if prevGene.type == Conv1DGene or prevGene.type == Conv2DGene or prevGene.type == FullyConnectedGene:
 			return True
-		else if prevGene.type == FullyConnectedGene:
-			## Should the num of nodes of the following fully-connected layer be smaller???
-			if prevGene.dimensionality < self.dimensionality:
-				return False
-			else:
-				return True
 		else:
 			return False
 
 
-	def outputDimension(self, prevGene):
+	def __outputDimension(self, prevGene):
 		"""
 		Calculate the output dimension based on the input dimension, kernel_size, and stride
 		"""
 
-		input_size = prevGene.dimensionality
-		output_size = (input_size-self.kernel_size)/stride + 1
-
-		self.dimensionality = output_size
-		return self.dimensionality
+		return self.dimension
 
 
 	def mutate(self, prevGene, nextGene):
@@ -379,14 +381,14 @@ class FullyConnectedGene(Gene):
 		pass
 
 
-
 """
 # Helper function
 # randomly generate a ConvGene based on the lastGene's output dimension
 """
 def generateConvGene(ConvGene, lastGene):
 	## specify the min and max for each random functions
-	kernel_size = np.random.randint(MIN_CNN_WIDTH, max_width+1)
+	max_size = min(MAX_CNN_WIDTH, lastGene.dimension[0])
+	kernel_size = np.random.randint(MIN_CNN_WIDTH, max_size+1)
 	conv_stride = np.random.randint(MIN_CNN_STRIDE, MAX_CNN_STRIDE+1)
 	num_kernels = np.random.randint(MIN_CNN_KERNELS, MAX_CNN_KERNELS+1)
 
@@ -399,11 +401,12 @@ def generateConvGene(ConvGene, lastGene):
 """
 def generatePoolGene(PoolGene, lastGene):
 	## specify the min and max for each random functions
-	pool_size = np.random.randint(MIN_POOL_SIZE, MAX_POOL_SIZE+1)
+	max_size = min(MAX_POOL_SIZE, lastGene.dimension[0])
+	pool_size = np.random.randint(MIN_POOL_SIZE, max_size+1)
 	pool_stride = np.random.randint(MIN_POOL_STRIDE, MAX_POOL_STRIDE+1)
 
 	# activation_function ???
-	return PoolGene(kernel_size, pool_stride, activation_function=None)
+	return PoolGene(pool_size, pool_stride, activation_function=None)
 
 
 """
@@ -451,5 +454,3 @@ def generateGenotypeProb(input_size, output_size, ConvProb=0.5, PoolProb=1.0, Fu
 		genotype.append(lastGene)
 
 	return genotype
-
-

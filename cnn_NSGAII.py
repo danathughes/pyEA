@@ -36,12 +36,13 @@ class Individual():
 	An individual consists of a gene and an objective
 	"""
 
-	def __init__(self, input_size=(200, 1), output_size=4, generateGenotype=generateGenotypeProb, counter=counter):
+	def __init__(self, input_size=(200, 1, 1), output_size=4, generateGenotype=generateGenotypeProb, counter=counter):
 		"""
 		Create a new individual using the gene generating function
+		input_size = (height, width, num_channels)
 		"""
 		self.cnn_inidvidual = CNN_Individual(input_size, output_size, generateGenotype)
-		self.objective = (1.0e8, 1.0e8)
+		self.objective = [1.0e8, 1.0e8]
 
 		self.dominationSet = set()
 		self.numDominated = 0
@@ -191,7 +192,6 @@ class NSGA_II:
 		Perform an NSGA-II step
 		"""
 
-		parents = self.population
 		children = self.generate_children()
 
 		# Evaluate the children
@@ -203,7 +203,7 @@ class NSGA_II:
 
 
 		# Temporarily merge the two populations to create a new one
-		self.population = parents + children
+		self.population.extend(children)
 
 		# Sort the population
 		self.sortPopulation()
