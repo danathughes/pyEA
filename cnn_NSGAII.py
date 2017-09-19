@@ -123,7 +123,7 @@ def write_file(filename, population):
 			if gene.type in [INPUT, CONV1D, CONV2D]:
 				data = ','.join([str(gene.type), str(gene.kernel_size), str(gene.stride), str(gene.num_kernels)])
 				data_genes.append(data)
-			else if gene.type in [POOL1D, POOL2D]:
+			elif gene.type in [POOL1D, POOL2D]:
 				data = ','.join([str(gene.type), str(gene.kernel_size), str(gene.stride)])
 				data_genes.append(data)				
 			else: # fully_connected
@@ -160,7 +160,7 @@ class NSGA_II:
 		assert population_size > 1, "Need a population of at least two to perform GA."
 
 		self.population_size = population_size
-		self.population = [Individual(generateGenotype=generateGenotypeProb) for i in range(self.population_size)]
+		self.population = [Individual() for i in range(self.population_size)]
 		self.generation = 0
 
 		self.selection = tournamentSelection

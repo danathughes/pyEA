@@ -18,12 +18,13 @@ class CNN_Individual:
 
 	def __init__(self, input_size, output_size, generateGenotype):
 		"""
+		input_size = (height, width, num_channels)
 		"""
 		self.input_size = input_size
 		self.output_size = output_size
 		self.generateGenotype = generateGenotype
 		if self.generateGenotype is not None:
-			self.genotype = self.generateGenotype(input_size, output_size, ConvProb=0.5, PoolProb=1.0, FullConnectProb = 0.5, is2D=False)
+			self.genotype = self.generateGenotype(input_size, output_size, ConvProb=0.9, PoolProb=1.0, FullConnectProb = 0.5, is2D=False)
 			## How can we correct the genotype if it is not valid ???
 		else:
 			self.genotype = None
@@ -87,7 +88,7 @@ class CNN_Individual:
 				if 0 < pos < len(self.genotype)-1:
 					preGene = self.genotype[pos-1]
 					curGene = self.genotype[pos+1]
-				else if pos == 0:
+				elif pos == 0:
 					preGene = None
 					curGene = self.genotype[pos+1]
 				else:
