@@ -5,7 +5,8 @@
 """
 1. What is the dimensionality for each gene type?
 
-INPUT - [ m * n * k] ???
+INPUT - [ m * n * k] - This is the case for a 2D gene (i.e., image)
+        [ m * k ] - This is the case for a 1D gene (i.e., accelerometer)
 
 2. Constraints on kernel_size, stripe or num_kernels when generating random Genes?
 
@@ -66,7 +67,8 @@ class Gene:
 		pass
 
 
-	def __outputDimension(self, prevGene):
+	#### Why was outputDimension hidden (two underlines makes it 'private' in Python)?  --Dana
+	def outputDimension(self, prevGene):
 		"""
 		What is the dimensionality of the output of this gene?
 		"""
@@ -89,28 +91,33 @@ class Gene:
 
 		pass
 
+
 class InputGene(Gene):
 	"""
 	"""
-	def __init__(self, input_size):
+	def __init__(self, input_shape):
 		"""
 		Placeholder gene for the input dimensionality of the problem set
-		input_size = (height, width, num_channels)
+		input_shape = (height, width, num_channels) (2D data)
+						  (length, num_channels) (1D data)
 		"""
 
-		self.dimension = input_size
+		self.dimension = input_shape
 		self.type = INPUT
 
 	def canFollow(self, prevGene=None):
 		"""
 		This never follows a gene, it's the input
 		"""
-		if prevGene is not None:
-			return False
-		else:
-			return True
 
-	def __outputDimension(self, prevGene=None):
+		return False
+
+#		if prevGene is not None:
+#			return False
+#		else:
+#			return True
+
+	def outputDimension(self, prevGene=None):
 		"""
 		"""
 		assert prevGene is None, "There shouldn't be prevGene for InputGene!"
@@ -122,14 +129,19 @@ class InputGene(Gene):
 		assert prevGene is None, "The input should not have previous gene!"
 		print "You are mutating an input, not allowed!"
 
+
 class Conv1DGene(Gene):
 	"""
 	"""
-	def __init__(self, kernel_size, stride, num_kernels, activation_function):
+	def __init__(self, kernel_shape, stride, num_kernels, activation_function):
 		"""
+		kernel_shape - should be a 1-tuple, e.g, (20,)
+		stride       - should be a 1-tuple, e.g, (2,)
+		num_kernels  - should be an integer
+		activation_function - a Tensorflow activation tensor (e.g., tf.sigmoid)
 		"""
 
-		self.kernel_size = kernel_size
+		self.kernel_shape = kernel_shape
 		self.stride = stride
 		self.num_kernels = num_kernels
 		self.activation = activation_function
@@ -145,24 +157,25 @@ class Conv1DGene(Gene):
 		"""
 		if prevGene.type == INPUT or prevGene.type == POOL1D:
 			## next step is to see if 
-			height, width, channels = prevGene.dimension
-			if self.kernel_size > height:
-				return False
-			else:
-				self.__outputDimension(prevGene)
-				return True
+			prevLength, channels = prevGene.dimension
+
+			return self.kernel_shape[0] <= prevLength
 		else:
 			return False
 
-	def __outputDimension(self, prevGene):
+	def outputDimension(self, prevGene):
 		"""
 		Calculate the output dimension based on the input dimension, kernel_size, and stride
 		"""
-		height, width, channels = prevGene.dimension
-		height = (height-self.kernel_size)/self.stride + 1
 
-		self.dimension = (height, width, self.num_kernels)
+		assert prevGene.dimension.shape == 2, "prevGene output needs to be (length, channels) in shape!"
+
+		prevLength, channels = prevGene.dimension
+		myLength = (prevLength - self.kernel_size[0])/self.stride[0] + 1
+
+		self.dimension = (myLength, self.num_kernels)
 		return self.dimension
+
 
 	def mutate(self, prevGene, nextGene):
 		"""
@@ -170,13 +183,18 @@ class Conv1DGene(Gene):
 		"""
 		pass
 
+
 class Conv2DGene(Gene):
 	"""
 	"""
-	def __init__(self, kernel_size, stride, num_kernels, activation_function):
+	def __init__(self, kernel_shape, stride, num_kernels, activation_function):
 		"""
+		kernel_shape - should be a 2-tuple, e.g, (20,20)
+		stride       - should be a 2-tuple, e.g, (2,2)
+		num_kernels  - should be an integer
+		activation_function - a Tensorflow activation tensor (e.g., tf.sigmoid)
 		"""
-		self.kernel_size = kernel_size
+		self.kernel_shape = kernel_shape
 		self.stride = stride
 		self.num_kernels = num_kernels
 		self.activation = activation_function
@@ -184,32 +202,30 @@ class Conv2DGene(Gene):
 		self.type = CONV2D
 		self.dimension = None
 
+
 	def canFollow(self, prevGene):
 		"""
-		A Conv2Dgene can follow an 'InputGene' or an 'Pool2DGene'
+		A Conv2Dgene can follow an 'InputGene', 'Conv2DGene' or an 'Pool2DGene'
 		The constraints are kernel_size should not larger than prevGene.output_size
 		"""
-		if prevGene.type == INPUT or prevGene.type == POOL2D:
+		if prevGene.type == INPUT or prevGene.type == CONV2D or prevGene.type == POOL2D:
 			## next step is to see if 
 			height, width, channels = prevGene.dimension
-			if self.kernel_size > height or self.kernel_size > width:
-				return False
-			else:
-				self.__outputDimension(prevGene)
-				return True
+			return self.kernel_shape[0] <= height and self.kernel_shape[1] <= width
 		else:
 			return False
 
-	def __outputDimension(self, prevGene):
+
+	def outputDimension(self, prevGene):
 		"""
 		Calculate the output dimension based on the input dimension, kernel_size, and stride
 		"""
 
-		height, width, channels = prevGene.dimension
-		height = (height-self.kernel_size)/self.stride + 1
-		width = (width-self.kernel_size)/self.stride + 1
+		prevHeight, prevWidth, channels = prevGene.dimension
+		myHeight = (prevHeight - self.kernel_size) / self.stride + 1
+		myWidth = (prevWidth - self.kernel_size) / self.stride + 1
 
-		self.dimension = (height, width, self.num_kernels)
+		self.dimension = (myHeight, myWidth, self.num_kernels)
 		return self.dimension
 
 	def mutate(self, prevGene, nextGene):
@@ -218,46 +234,43 @@ class Conv2DGene(Gene):
 		"""
 		pass
 
+
 class Pool1DGene(Gene):
 	"""
 	"""
-	def __init__(self, kernel_size, stride, num_kernels, activation_function):
+	def __init__(self, pool_size, stride):
 		"""
+		pool_size    - should be a 1-tuple, e.g, (2,)
+		stride       - should be a 1-tuple, e.g, (2,)
 		"""
 
-		self.kernel_size = kernel_size
+		self.pool_shape = pool_shape
 		self.stride = stride
-		self.activation = activation_function
-		self.num_kernels = num_kernels
 
 		self.type = POOL1D
-		# dimension = (height, width, kernels)
 		self.dimension = None
 
 	def canFollow(self, prevGene):
 		"""
-		A Pool1DGene can only follow an 'Conv1DGene'
+		A Pool1DGene can only follow an 'Conv1DGene', or 'InputGene' (unusual, though, perhaps don't allow this?)
 		"""
-		self.num_kernels = prevGene.num_kernels
-		if prevGene.type == CONV1D:
-			## next step is to see if
-			height, width, num_kernels = prevGene.dimension 
-			if self.kernel_size > height:
-				return False
-			else:
-				self.__outputDimension(prevGene)
-				return True
+
+		prevLength, num_channels = prevGene.dimension
+
+		if prevGene.type == CONV1D or prevGene.type == INPUT:
+			return self.pool_shape[0] <= prevLength
 		else:
 			return False
 
-	def __outputDimension(self, prevGene):
+	def outputDimension(self, prevGene):
 		"""
 		Calculate the output dimension based on the input dimension, kernel_size, and stride
 		"""
-		height, width, num_kernels = prevGene.dimension
-		height = (height-self.kernel_size)/self.stride + 1
 
-		self.dimension = (height, width, self.num_kernels)
+		prevLength, num_kernels = prevGene.dimension
+		myLength = (prevLength - self.pool_shape[0]) / self.stride[0] + 1
+
+		self.dimension = (myLength, num_kernels)
 		return self.dimension
 
 
@@ -268,44 +281,43 @@ class Pool1DGene(Gene):
 
 		pass
 
+
 class Pool2DGene(Gene):
 	"""
 	"""
-	def __init__(self, kernel_size, stride, activation_function):
+	def __init__(self, pool_shape, stride):
 		"""
+		pool_size    - should be a 2-tuple, e.g, (2,2)
+		stride       - should be a 2-tuple, e.g, (2,2)
 		"""
-		self.kernel_size = kernel_size
+		self.pool_shape = pool_shape
 		self.stride = stride
-		self.activation = activation_function
 
 		self.type = POOL2D
 		self.dimension = None
 
 	def canFollow(self, prevGene):
 		"""
-		A Pool2DGene can only follow an 'Conv2DGene'
+		A Pool2DGene can only follow an 'Conv2DGene' or 'InputGene'
 		"""
-		if prevGene.type == CONV2D:
-			## next step is to see if 
-			height, width, channels = prevGene.dimension
-			if self.kernel_size > height or self.kernel_size > width:
-				return False
-			else:
-				self.__outputDimension(prevGene)
-				return True
+
+		prevHeight, prevWidth, channels = prevGene.dimension
+
+		if prevGene.type == CONV2D or prevGene.type == INPUT:
+			return pool_shape[0] <= prevHeight or pool_shape[1] <= prevWidth
 		else:
 			return False
 
-	def __outputDimension(self, prevGene):
+	def outputDimension(self, prevGene):
 		"""
 		Calculate the output dimension based on the input dimension, kernel_size, and stride
 		"""
 
-		height, width, channels = prevGene.dimension
-		height = (height-self.kernel_size)/self.stride + 1
-		width = (width-self.kernel_size)/self.stride + 1
+		prevHeight, prevWidth, channels = prevGene.dimension
+		myHeight = (prevHeight - self.pool_shape[0]) / self.stride[0] + 1
+		myWidth = (prevWidth - self.pool_shape[1]) / self.stride[1] + 1
 
-		self.dimension = (height, width, channels)
+		self.dimension = (myHeight, myWidth, channels)
 		return self.dimension
 
 	def mutate(self, prevGene, nextGene):
@@ -314,11 +326,14 @@ class Pool2DGene(Gene):
 		"""
 		pass
 
+
 class FullyConnectedGene(Gene):
 	"""
 	"""
 	def __init__(self, size, activation_function):
 		"""
+		size                - number of neurons (integer)
+		activation_function - e.g., tf.sigmoid
 		"""
 		self.size = size
 		self.activation = activation_function
@@ -328,14 +343,17 @@ class FullyConnectedGene(Gene):
 
 	def canFollow(self, prevGene):
 		"""
-		A FullyConnectedGene can follow an 'Pool1DGene', an 'Pool2DGene' or another 'FullyConnectedGene'
+		A FullyConnectedGene can follow any of the other types of genes
 		"""
+
 		return True
 
-	def __outputDimension(self, prevGene):
+
+	def outputDimension(self, prevGene):
 		"""
 		Calculate the output dimension based on the input dimension, kernel_size, and stride
 		"""
+
 		return self.dimension
 
 
@@ -386,7 +404,14 @@ def generateFullConnectedGene(FullyConnectedGene, lastGene):
 """
 Create a list of genes that describes a random, valid CNN
 """
-def generateGenotypeProb(input_size, output_size, ConvProb, PoolProb=1.0, FullConnectProb = 0.5, is2D=False):
+def generateGenotypeProb(input_size, output_size, ConvProb, PoolProb=1.0, FullConnectProb = 0.5):
+
+	# Is this a 1D or 2D input shape?
+	if input_size.shape == 2:
+		is2D = False
+	else:
+		is2D = True
+
 	# Pick out the appropriate Gene types
 	if is2D:
 		ConvGene = Conv2DGene
@@ -399,6 +424,8 @@ def generateGenotypeProb(input_size, output_size, ConvProb, PoolProb=1.0, FullCo
 	genotype = [lastGene]
 	print(lastGene.dimension)
 
+	#### NOTE: May need to have two generateConvGene and generatePoolGene, for each possible shape (1D and 2D)
+
 	# Add convolution layers (and possibly pooling layers) until a random check fails
 	while random.random() < ConvProb:
 		if MIN_CNN_WIDTH > lastGene.dimension[0]:
@@ -406,7 +433,7 @@ def generateGenotypeProb(input_size, output_size, ConvProb, PoolProb=1.0, FullCo
 
 		# Add the Convolution layer, with random arguments...
 		tmpGene = generateConvGene(ConvGene, lastGene)
-		print('kernel_size: {}, conv_stride: {}, num_kernels: {}'.format(tmpGene.kernel_size, tmpGene.stride, tmpGene.num_kernels))
+		print('kernel_size: {}, conv_stride: {}, num_kernels: {}'.format(tmpGene.kernel_shape, tmpGene.stride, tmpGene.num_kernels))
 		if tmpGene.canFollow(lastGene):
 			lastGene = tmpGene
 			genotype.append(lastGene)
@@ -423,7 +450,7 @@ def generateGenotypeProb(input_size, output_size, ConvProb, PoolProb=1.0, FullCo
 			if MIN_POOL_SIZE > lastGene.dimension[0]:
 				break
 			tmpGene = generatePoolGene(PoolGene, lastGene)
-			print('kernel_size: {}, pool_stride: {}, num_kernels: {}'.format(tmpGene.kernel_size, tmpGene.stride, tmpGene.num_kernels))
+			print('kernel_size: {}, pool_stride: {}, num_kernels: {}'.format(tmpGene.pool_shape, tmpGene.stride, tmpGene.num_kernels))
 			if tmpGene.canFollow(lastGene):
 				lastGene = tmpGene
 				genotype.append(lastGene)
