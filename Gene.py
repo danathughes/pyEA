@@ -472,6 +472,8 @@ def generateGenotypeProb(input_size, output_size, ConvProb, PoolProb=1.0, FullCo
 	while random.random() < ConvProb:
 		if MIN_CNN_WIDTH > lastGene.dimension[0]:
 			break
+		if is2D and MIN_CNN_WIDTH > lastGene.dimension[1]:
+			break
 
 		# Add the Convolution layer, with random arguments...
 		tmpGene = generateConvGene(lastGene)
@@ -489,7 +491,9 @@ def generateGenotypeProb(input_size, output_size, ConvProb, PoolProb=1.0, FullCo
 
 		# Should a pooling layer be added?
 		if random.random() < PoolProb:
-			if MIN_POOL_SIZE > lastGene.dimension[0]:
+			if MIN_POOL_SIZE > lastGene.dimension[0] :
+				break
+			if is2D and MIN_POOL_SIZE > lastGene.dimension[1]:
 				break
 			tmpGene = generatePoolGene(lastGene)
 			print('kernel_size: {}, pool_stride: {}'.format(tmpGene.pool_shape, tmpGene.stride))
