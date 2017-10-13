@@ -159,6 +159,8 @@ class Conv1DGene(Gene):
 			## next step is to see if 
 			prevLength, channels = prevGene.dimension
 
+			self.dimension = self.outputDimension(prevGene)
+
 			return self.kernel_shape[0] <= prevLength
 		else:
 			return False
@@ -168,10 +170,10 @@ class Conv1DGene(Gene):
 		Calculate the output dimension based on the input dimension, kernel_size, and stride
 		"""
 
-		assert prevGene.dimension.shape == 2, "prevGene output needs to be (length, channels) in shape!"
+		assert len(prevGene.dimension) == 2, "prevGene output needs to be (length, channels) in shape!"
 
 		prevLength, channels = prevGene.dimension
-		myLength = (prevLength - self.kernel_size[0])/self.stride[0] + 1
+		myLength = (prevLength - self.kernel_shape[0]) / self.stride[0] + 1
 
 		self.dimension = (myLength, self.num_kernels)
 		return self.dimension
@@ -211,6 +213,9 @@ class Conv2DGene(Gene):
 		if prevGene.type == INPUT or prevGene.type == CONV2D or prevGene.type == POOL2D:
 			## next step is to see if 
 			height, width, channels = prevGene.dimension
+
+			self.dimension = self.outputDimension(prevGene)
+
 			return self.kernel_shape[0] <= height and self.kernel_shape[1] <= width
 		else:
 			return False
@@ -222,8 +227,8 @@ class Conv2DGene(Gene):
 		"""
 
 		prevHeight, prevWidth, channels = prevGene.dimension
-		myHeight = (prevHeight - self.kernel_size) / self.stride + 1
-		myWidth = (prevWidth - self.kernel_size) / self.stride + 1
+		myHeight = (prevHeight - self.kernel_shape[0]) / self.stride[0] + 1
+		myWidth = (prevWidth - self.kernel_shape[1]) / self.stride[1] + 1
 
 		self.dimension = (myHeight, myWidth, self.num_kernels)
 		return self.dimension
@@ -238,7 +243,7 @@ class Conv2DGene(Gene):
 class Pool1DGene(Gene):
 	"""
 	"""
-	def __init__(self, pool_size, stride):
+	def __init__(self, pool_shape, stride):
 		"""
 		pool_size    - should be a 1-tuple, e.g, (2,)
 		stride       - should be a 1-tuple, e.g, (2,)
@@ -258,6 +263,9 @@ class Pool1DGene(Gene):
 		prevLength, num_channels = prevGene.dimension
 
 		if prevGene.type == CONV1D or prevGene.type == INPUT:
+
+			self.dimension = self.outputDimension(prevGene)
+
 			return self.pool_shape[0] <= prevLength
 		else:
 			return False
@@ -304,7 +312,10 @@ class Pool2DGene(Gene):
 		prevHeight, prevWidth, channels = prevGene.dimension
 
 		if prevGene.type == CONV2D or prevGene.type == INPUT:
-			return pool_shape[0] <= prevHeight or pool_shape[1] <= prevWidth
+
+			self.dimension = self.outputDimension(prevGene)
+
+			return self.pool_shape[0] <= prevHeight or self.pool_shape[1] <= prevWidth
 		else:
 			return False
 
@@ -367,7 +378,7 @@ class FullyConnectedGene(Gene):
 # Helper function
 # randomly generate a ConvGene based on the lastGene's output dimension
 """
-def generateConvGene(ConvGene, lastGene):
+def generate1DConvGene(lastGene):
 	## specify the min and max for each random functions
 	max_size = min(MAX_CNN_WIDTH, lastGene.dimension[0])
 	kernel_size = np.random.randint(MIN_CNN_WIDTH, max_size+1)
@@ -375,20 +386,51 @@ def generateConvGene(ConvGene, lastGene):
 	num_kernels = np.random.randint(MIN_CNN_KERNELS, MAX_CNN_KERNELS+1)
 
 	# activation_function ???
-	return ConvGene(kernel_size, conv_stride, num_kernels, activation_function=None)
+	return Conv1DGene((kernel_size,), (conv_stride,), num_kernels, activation_function=None)
+
+def generate2DConvGene(lastGene):
+	## specify the min and max for each random functions
+	max_height = min(MAX_CNN_WIDTH, lastGene.dimension[0])
+	max_width = min(MAX_CNN_WIDTH, lastGene.dimension[1])
+	kernel_height = np.random.randint(MIN_CNN_WIDTH, max_height+1)
+	kernel_width = np.random.randint(MIN_CNN_WIDTH, max_width+1)
+	
+	conv_stride_height = np.random.randint(MIN_CNN_STRIDE, MAX_CNN_STRIDE+1)
+	conv_stride_width = np.random.randint(MIN_CNN_STRIDE, MAX_CNN_STRIDE+1)
+
+	num_kernels = np.random.randint(MIN_CNN_KERNELS, MAX_CNN_KERNELS+1)
+
+	# activation_function ???
+	return Conv2DGene((kernel_height, kernel_width), (conv_stride_height, conv_stride_width), num_kernels, activation_function=None)
 
 """
 # Helper function
 # randomly generate a PoolGene based on the lastGene's output dimension
 """
-def generatePoolGene(PoolGene, lastGene):
+def generate1DPoolGene(lastGene):
 	## specify the min and max for each random functions
 	max_size = min(MAX_POOL_SIZE, lastGene.dimension[0])
 	pool_size = np.random.randint(MIN_POOL_SIZE, max_size+1)
 	pool_stride = np.random.randint(MIN_POOL_STRIDE, MAX_POOL_STRIDE+1)
 
 	# activation_function ???
-	return PoolGene(pool_size, pool_stride, lastGene.num_kernels, activation_function=None)
+	return Pool1DGene((pool_size,), (pool_stride,))
+
+
+def generate2DPoolGene(lastGene):
+	## specify the min and max for each random functions
+	max_height = min(MAX_POOL_SIZE, lastGene.dimension[0])
+	max_width = min(MAX_POOL_SIZE, lastGene.dimension[1])
+
+	pool_height = np.random.randint(MIN_POOL_SIZE, max_height+1)
+	pool_width = np.random.randint(MIN_POOL_SIZE, max_width+1)
+
+	pool_stride_height = np.random.randint(MIN_POOL_STRIDE, MAX_POOL_STRIDE+1)
+	pool_stride_width = np.random.randint(MIN_POOL_STRIDE, MAX_POOL_STRIDE+1)
+
+	# activation_function ???
+	return Pool2DGene((pool_height, pool_width), (pool_stride_height, pool_stride_width))
+
 
 """
 # Helper function
@@ -407,18 +449,18 @@ Create a list of genes that describes a random, valid CNN
 def generateGenotypeProb(input_size, output_size, ConvProb, PoolProb=1.0, FullConnectProb = 0.5):
 
 	# Is this a 1D or 2D input shape?
-	if input_size.shape == 2:
+	if len(input_size) == 2:
 		is2D = False
 	else:
 		is2D = True
 
 	# Pick out the appropriate Gene types
 	if is2D:
-		ConvGene = Conv2DGene
-		PoolGene = Pool2DGene
+		generateConvGene = generate2DConvGene
+		generatePoolGene = generate2DPoolGene
 	else:
-		ConvGene = Conv1DGene
-		PoolGene = Pool1DGene
+		generateConvGene = generate1DConvGene
+		generatePoolGene = generate1DPoolGene
 
 	lastGene = InputGene(input_size)
 	genotype = [lastGene]
@@ -432,7 +474,7 @@ def generateGenotypeProb(input_size, output_size, ConvProb, PoolProb=1.0, FullCo
 			break
 
 		# Add the Convolution layer, with random arguments...
-		tmpGene = generateConvGene(ConvGene, lastGene)
+		tmpGene = generateConvGene(lastGene)
 		print('kernel_size: {}, conv_stride: {}, num_kernels: {}'.format(tmpGene.kernel_shape, tmpGene.stride, tmpGene.num_kernels))
 		if tmpGene.canFollow(lastGene):
 			lastGene = tmpGene
@@ -449,8 +491,8 @@ def generateGenotypeProb(input_size, output_size, ConvProb, PoolProb=1.0, FullCo
 		if random.random() < PoolProb:
 			if MIN_POOL_SIZE > lastGene.dimension[0]:
 				break
-			tmpGene = generatePoolGene(PoolGene, lastGene)
-			print('kernel_size: {}, pool_stride: {}, num_kernels: {}'.format(tmpGene.pool_shape, tmpGene.stride, tmpGene.num_kernels))
+			tmpGene = generatePoolGene(lastGene)
+			print('kernel_size: {}, pool_stride: {}'.format(tmpGene.pool_shape, tmpGene.stride))
 			if tmpGene.canFollow(lastGene):
 				lastGene = tmpGene
 				genotype.append(lastGene)
