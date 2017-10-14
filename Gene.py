@@ -79,6 +79,14 @@ class Gene:
 		return None
 
 
+	def clone(self):
+		"""
+		Make a copy of this gene
+		"""
+
+		pass
+
+
 	def mutate(self, prevGene, nextGene):
 		"""
 		Alter this gene, ensuring that the constraints from the previous and next gene are satisfied
@@ -112,6 +120,13 @@ class InputGene(Gene):
 
 		self.prev_gene = None
 		self.next_gene = None
+
+
+	def clone(self):
+		"""
+		"""
+
+		return InputGene(self.dimension)
 
 
 	def canFollow(self, prevGene=None):
@@ -150,11 +165,20 @@ class OutputGene(Gene):
 		self.dimension = output_size
 		self.type = OUTPUT
 
-	def canFollow(self, prevGene=None):
+
+	def clone(self):
 		"""
 		"""
 
-		return True
+		return OutputGene(self.dimension)
+
+
+	def canFollow(self, prevGene):
+		"""
+		"""
+
+		# Don't let this follow another output gene
+		return prevGene.type != OUTPUT
 
 	def outputDimension(self, prevGene=None):
 		"""
@@ -181,6 +205,12 @@ class DummyGene(Gene):
 
 		self.shape = shape
 		self.type = INPUT
+
+	def clone(self):
+		dummy =  DummyGene(self.shape)
+		dummy.type = self.type
+
+		return dummy
 
 	def canFollow(self, prevGene):
 		pass
@@ -212,6 +242,13 @@ class Conv1DGene(Gene):
 		self.activation = activation_function
 
 		self.type = CONV1D
+
+
+	def clone(self):
+		"""
+		"""
+
+		return Conv1DGene(self.kernel_shape, self.stride, self.num_kernels, self.activation)
 
 
 	def canFollow(self, prevGene):
@@ -292,6 +329,13 @@ class Conv2DGene(Gene):
 		self.dimension = None
 
 
+	def clone(self):
+		"""
+		"""
+
+		return Conv2DGene(self.kernel_shape, self.stride, self.num_kernels, self.activation)
+
+
 	def canFollow(self, prevGene):
 		"""
 		A Conv1Dgene can follow an 'InputGene' or an 'Pool1DGene'
@@ -300,12 +344,10 @@ class Conv2DGene(Gene):
 
 		# Is the previous gene a valid type?
 		if not prevGene.type in [INPUT, CONV2D, POOL2D]:
-			print "blah"
 			return False
 
 		# Is the dimensionality 2? (length x channels)
 		if len(prevGene.outputDimension()) != 3:
-			print "blah1"
 			return False
 
 		# Get the output dimension of the previous gene
@@ -313,7 +355,6 @@ class Conv2DGene(Gene):
 
 		# Is the kernel larger than the previous length?
 		if self.kernel_shape[0] > prevHeight or self.kernel_shape[1] > prevWidth:
-			print "blah2"
 			return False
 
 		# So far, no problem with dimensionality.  Check if further down the genotype is valid
@@ -369,6 +410,13 @@ class Pool1DGene(Gene):
 
 		self.type = POOL1D
 		self.dimension = None
+
+
+	def clone(self):
+		"""
+		"""
+
+		return Pool1DGene(self.pool_shape, self.stride)
 
 
 	def canFollow(self, prevGene):
@@ -446,6 +494,13 @@ class Pool2DGene(Gene):
 		self.dimension = None
 
 
+	def clone(self):
+		"""
+		"""
+
+		return Pool2DGene(self.pool_shape, self.stride)		
+
+
 	def canFollow(self, prevGene):
 		"""
 		A Conv1Dgene can follow an 'InputGene' or an 'Pool1DGene'
@@ -519,6 +574,13 @@ class FullyConnectedGene(Gene):
 
 		self.type = FULLY_CONNECTED
 		self.dimension = size
+
+
+	def clone(self):
+		"""
+		"""
+
+		return FullyConnectedGene(self.size, self.activation)
 
 	def canFollow(self, prevGene):
 		"""
