@@ -11,100 +11,19 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-## The SCH problem
 
-# Problem definitions
-def SCH(x):
-	"""
-	n = 1
-	Variable bounds = [-10^3, 10^3]
-	Objectives:
-	  f1(x) = x^2
-	  f2(x) = (x-2)^2
-	Optimal solutions:
-	  x in [0,2]
-	convex
-	"""
-
-	assert x[0] >= -1e3, "x is out of bounds: %f" % x
-	assert x[0] <= 1e3, "x is out of bounds: %f" % x
-
-	return [x[0]**2, (x[0]-2)**2]
-
-# Generating function
-def generateRandomGenotypeSCH(n=1, bounds=[-1e3, 1e3]):
-	"""
-	Create a new gene with the desired dimensionality and witning the 
-	bounds given
-	"""
-
-	return [np.random.random()*2e1 - 1e1]
-
-###
-
-### FON
-def FON(x):
-	"""
-	n = 3
-	Variable bounds = [-4,4]
-	Objectives:
-		f1(x) = 1 - exp(-Sum_i (x_i - 1/sqrt(3)^2))
-		f1(x) = 1 - exp(-Sum_i (x_i + 1/sqrt(3)^2))
-	Optimal Solution:
-		x1 = x2 = x3, in [-1/sqrt(3), 1/sqrt(3)]
-	nonconvex
-	"""
-
-	for i in range(3):
-		assert x[i] >= -4, "x[%d] is out of bounds: %f" % (i,x[i])
-		assert x[i] <= 4, "x[%d] is out of bounds: %f" % (i,x[i])
-
-	a = 0.0
-	b = 0.0
-
-	for i in range(3):
-		a += (x[i] - 1.0/np.sqrt(3))**2
-		b += (x[i] + 1.0/np.sqrt(3))**2
-
-	f1 = 1.0 - np.exp(-a)
-	f2 = 1.0 - np.exp(-b)
-
-	return [f1, f2]
-
-
-def generateRandomGenotypeFON(n=3, bounds=[-4, 4]):
-	"""
-	Create a new gene with the desired dimensionality and witning the 
-	bounds given
-	"""
-
-	val = [0,0,0]
-
-	for i in range(3):
-		val[i] = np.random.random() * 8.0 - 4.0
-
-	return val
-
-
-### Assign the problem
-# problem = (generateRandomGenotypeSCH, SCH)
-problem = (generateRandomGenotypeFON, FON)
-
-class Individual:
+class AbstractIndividual:
 	"""
 	An individual consists of a gene and an objective
 	"""
 
-	def __init__(self, generatingFunction=problem[0], objectiveFunction=problem[1]):
+	def __init__(self):
 		"""
 		Create a new individual using the gene generating function
 		"""
 
-		self.generatingFunction = generatingFunction
-		self.objectiveFunction = objectiveFunction
-
-		self.gene = generatingFunction()
-		self.objective = objectiveFunction(self.gene)
+		self.gene = None
+		self.objective = None
 
 		self.dominationSet = set()
 		self.numDominated = 0
@@ -117,7 +36,7 @@ class Individual:
 		"""
 		"""
 
-		self.objective = self.objectiveFunction(self.gene)
+		pass
 
 
 	def dominates(self, other):
@@ -145,27 +64,7 @@ class Individual:
 		Spawn two offspring
 		"""
 
-		offspring_A = Individual(self.generatingFunction, self.objectiveFunction)
-		offspring_B = Individual(self.generatingFunction, self.objectiveFunction)
-
-		# Go through each chromosome and swap
-		for i in range(len(self.gene)):
-			c1 = self.gene[i]
-			c2 = other.gene[i]
-			# Should these chromosomes swap in the offspring?
-			if np.random.random() < crossover_prob:
-				offspring_A.gene[i] = c1
-				offspring_B.gene[i] = c2
-			else:
-				offspring_B.gene[i] = c1
-				offspring_A.gene[i] = c2
-
-		# Calculate the objectives of these offspring
-		if calc_objectives:
-			offspring_A.calculateObjective()
-			offspring_B.calculateObjective()
-
-		return offspring_A, offspring_B
+		pass
 
 
 	def mutate(self, mutation_prob=0.1, calc_objectives=True):
@@ -173,19 +72,7 @@ class Individual:
 		Mutate each chromosome with a random probability
 		"""
 
-		# Create a dummy gene to pull random ("mutated") chromosomes from
-		dummy_gene = self.generatingFunction()
-
-		# Mutate individual chromosomes as needed
-		for i in range(len(self.gene)):
-			if np.random.random() < mutation_prob:
-				self.gene[i] = dummy_gene[i]
-
-		# Calculate the new objective
-		if calc_objectives:
-			self.calculateObjective()
-
-		return
+		pass
 
 
 ### Routine GA functions
@@ -223,15 +110,17 @@ class NSGA_II:
 	"""
 	"""
 
-	def __init__(self, population_size):
+	def __init__(self, population_size, IndividualClass):
 		"""
 		Create a new population
 		"""
 
+		self.Individual = IndividualClass
+
 		assert population_size > 1, "Need a population of at least two to perform GA."
 
 		self.population_size = population_size
-		self.population = [Individual() for i in range(self.population_size)]
+		self.population = [self.Individual() for i in range(self.population_size)]
 		self.generation = 0
 
 		self.selection = tournamentSelection
@@ -409,64 +298,3 @@ class NSGA_II:
 		self.population = [x[1] for x in rank_and_individual]
 
 		return
-
-
-def get_pts(pop):
-	"""
-	"""
-
-	x = []
-	y = []
-
-	for p in pop:
-		x.append(p.objective[0])
-		y.append(p.objective[1])
-
-	return x,y
-
-
-def test(pop_size, num_steps, delay=0.5, ax_range=[-1,5,-1,5]):
-	"""
-	Run a test
-	"""
-
-	import time
-
-	# Build the NSGA-II test
-	nsga = NSGA_II(pop_size)
-
-	# Create a plot to show how things are going
-	plt.ion()
-
-	fig = plt.figure()
-	ax = fig.add_subplot(111)
-	ax.axis(ax_range)
-
-	x,y = get_pts(nsga.population)
-	plt_data, = ax.plot(x, y, 'o')
-
-	fig.canvas.draw()
-
-	for i in range(num_steps):
-		nsga.step()
-
-		print "Step #%d" % (i+1)
-		x,y = get_pts(nsga.population)
-		plt_data.set_xdata(x)
-		plt_data.set_ydata(y)
-		fig.canvas.draw()
-
-		time.sleep(delay)
-
-	print "Done.  10 best solutions are:"
-
-	nsga.sortPopulation()
-
-	for i in range(10):
-		print "Solution #%d" % i
-		print "  Variable: ", nsga.population[i].gene
-		print "  Objective:", nsga.population[i].objective
-
-
-if __name__=='__main__':
-	test(50, 100)

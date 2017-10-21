@@ -2,98 +2,94 @@
 ##
 ##
 
+from CNN_Gene import Genotype
+from pyNSGAII import AbstractIndividual
 
-"""
-1. Evaluate individual, Write to files in cnn_NSGAII.py and then load by eval_XXX.py as the previous program?
-
-
-"""
-
-from Gene import *
-
-
-class CNN_Individual:
+class CNN_Individual(AbstractIndividual):
 	"""
+	An individual encoding a CNN
 	"""
 
-	def __init__(self, input_size, output_size, generateGenotype):
+	def __init__(self, input_shape, output_size):
 		"""
-		input_size = (height, width, num_channels)
 		"""
-		self.input_size = input_size
+
+		AbstractIndividual.__init__(self)
+
+		self.input_shape = input_shape
 		self.output_size = output_size
-		self.generateGenotype = generateGenotype
-		if self.generateGenotype is not None:
-			self.genotype = self.generateGenotype(input_size, output_size, ConvProb=0.9, PoolProb=1.0, FullConnectProb = 0.5, is2D=False)
-			## How can we correct the genotype if it is not valid ???
-		else:
-			self.genotype = None
-		
+
+		self.gene = Genotype(input_shape, output_size)
 
 
-	def __checkValidity(self):
+	def calculateObjective(self):
 		"""
 		"""
 
-		for i in ragne(1,len(self.genotype)):
-			preGene = self.genotype(i-1)
-			curGene = self.genotype(i)
-			if not curGene.canFollow(preGene):
-				return False
-
-		return True
-
-	def __correctInvalidGenotype(self):
-		"""
-		"""
-
+		# Gotta implement this by feeding the gene to a tensorflow evaluator
 		pass
 
 
-	def crossover(self, otherIndividual, crossover_rate=None):
+	def crossover(self, other):
 		"""
-		Return two children using the other individual as a second parent
+		Perform crossover between these two genes
 		"""
 
-		offspring_A = CNN_Individual(self.input_size, self.output_size, generateGenotype=None)
-		offspring_B = CNN_Individual(self.input_size, self.output_size, generateGenotype=None)
+		# What are valid crossover points?
+		crossover_points = []
 
-		# one-point crossover
-		# select one position 'i_A' in self.genotype, and select one feasible position 'i_B' in otherInd.genotype
+		for i in range(1, len(self.gene)):
+			for j in range(1, len(other.gene)):
+				if self.gene[i].canFollow(other.gene[j-1]) and other.gene[j].canFollow(self.gene[i-1]):
+					# Are we just swapping inputs or outputs?
+					if i==1 and j==1:
+						pass
+					elif i==len(self.gene) and j==len(other.gene):
+						pass
+					else:
+						crossover_points.append((i,j))
 
-		genotype_A = []
-		genotype_B = []
-		for i in range(0, i_A):
-			genotype_A.append(self.genotype[i])
-		for i in range(i_B, len(otherInd.genotype)):
-			genotype_A.append(otherInd.genotype[i])
+		# if the list is empty, cannot do anything
+		if len(crossover_points) == 0:
+			return None, None
 
-		for i in range(0, i_B-1):
-			genotype_B.append(otherInd.genotype[i])
-		for i in range(i_A+1, len(self.genotype)):
-			genotype_B.append(self.genotype[i])
+		# Make two new genotypes
+		child1 = []
+		child2 = []
 
-		offspring_A.genotype = genotype_A
-		offspring_B.genotype = genotype_B
+		crossover_point = random.choice(crossover_points)
 
-		return offspring_A, offspring_B
+		# Populate the first half of each children
+		for i in range(crossover_point[0]):
+			child1.append(self.gene[i].clone())
+		for j in range(crossover_point[1]):
+			child2.append(other.gene[j].clone())
+
+		# Populate the second half of each child
+		for i in range(crossover_point[0], len(self.gene)):
+			child2.append(self.gene[i].clone())
+		for j in range(crossover_point[1], len(other.gene)):
+			child1.append(other.gene[j].clone())
+
+		# Link the previous and next genes in each child
+		for i in range(len(child1) - 1):
+			child1[i].next_gene = child1[i+1]
+		for i in range(1, len(child1)):
+			child1[i].prev_gene = child1[i-1]
+
+		for i in range(len(child2) - 1):
+			child2[i].next_gene = child2[i+1]
+		for i in range(1, len(child2)):
+			child2[i].prev_gene = child2[i-1]
+
+		# Done!
+		return child1, child2
 
 
-	def mutate(self, mutation_rate):
+
+	def mutate(self):
 		"""
+		Mutate this individual
 		"""
-		for i in range(len(self.genotype)):
-			if random.random() < mutation_rate:
-				pos = i
-				if 0 < pos < len(self.genotype)-1:
-					preGene = self.genotype[pos-1]
-					curGene = self.genotype[pos+1]
-				elif pos == 0:
-					preGene = None
-					curGene = self.genotype[pos+1]
-				else:
-					preGene = self.genotype[pos-1]
-					curGene = None				
 
-				self.genotype[pos].mutate(preGene, curGene)
-			
+		pass
