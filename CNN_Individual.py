@@ -2,8 +2,11 @@
 ##
 ##
 
+import random
+
 from CNN_Gene import Genotype
 from pyNSGAII import AbstractIndividual
+
 
 class CNN_Individual(AbstractIndividual):
 	"""
@@ -20,6 +23,7 @@ class CNN_Individual(AbstractIndividual):
 		self.output_size = output_size
 
 		self.gene = Genotype(input_shape, output_size)
+		self.objective = [1000*random.random(), 10000*random.random()]
 
 
 	def calculateObjective(self):
@@ -27,7 +31,18 @@ class CNN_Individual(AbstractIndividual):
 		"""
 
 		# Gotta implement this by feeding the gene to a tensorflow evaluator
-		pass
+		self.objective[0] += 10*random.random() - 5
+		self.objective[1] += 10*random.random() - 5
+
+
+	def clone(self):
+		"""
+		Make a copy of me!
+		"""
+
+		clone = CNN_Individual()
+		clone.gene = self.gene.clone()
+		clone.objective = self.objective
 
 
 	def crossover(self, other):
@@ -35,56 +50,21 @@ class CNN_Individual(AbstractIndividual):
 		Perform crossover between these two genes
 		"""
 
-		# What are valid crossover points?
-		crossover_points = []
+		child1 = CNN_Individual(self.input_shape, self.output_size)
+		child2 = CNN_Individual(self.input_shape, self.output_size)
 
-		for i in range(1, len(self.gene)):
-			for j in range(1, len(other.gene)):
-				if self.gene[i].canFollow(other.gene[j-1]) and other.gene[j].canFollow(self.gene[i-1]):
-					# Are we just swapping inputs or outputs?
-					if i==1 and j==1:
-						pass
-					elif i==len(self.gene) and j==len(other.gene):
-						pass
-					else:
-						crossover_points.append((i,j))
+		gene1, gene2 = self.gene.crossover(other.gene)
+		child1.gene = gene1
+		child2.gene = gene2
 
-		# if the list is empty, cannot do anything
-		if len(crossover_points) == 0:
-			return None, None
+		if gene1 == None:
+			child1.gene = self.gene.clone()
+			child1.mutate()
+		if gene2 == None:
+			child2.gene = other.gene.clone()
+			child2.mutate()
 
-		# Make two new genotypes
-		child1 = []
-		child2 = []
-
-		crossover_point = random.choice(crossover_points)
-
-		# Populate the first half of each children
-		for i in range(crossover_point[0]):
-			child1.append(self.gene[i].clone())
-		for j in range(crossover_point[1]):
-			child2.append(other.gene[j].clone())
-
-		# Populate the second half of each child
-		for i in range(crossover_point[0], len(self.gene)):
-			child2.append(self.gene[i].clone())
-		for j in range(crossover_point[1], len(other.gene)):
-			child1.append(other.gene[j].clone())
-
-		# Link the previous and next genes in each child
-		for i in range(len(child1) - 1):
-			child1[i].next_gene = child1[i+1]
-		for i in range(1, len(child1)):
-			child1[i].prev_gene = child1[i-1]
-
-		for i in range(len(child2) - 1):
-			child2[i].next_gene = child2[i+1]
-		for i in range(1, len(child2)):
-			child2[i].prev_gene = child2[i-1]
-
-		# Done!
 		return child1, child2
-
 
 
 	def mutate(self):
