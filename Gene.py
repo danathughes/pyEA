@@ -102,6 +102,13 @@ class Gene:
 
 		pass
 
+	def __str__(self):
+		"""
+		String representation of this gene
+		"""
+
+		return "Abstract Gene"
+
 
 class InputGene(Gene):
 	"""
@@ -151,6 +158,13 @@ class InputGene(Gene):
 		print "You are mutating an input, not allowed!"
 
 
+	def __str__(self):
+		"""
+		"""
+
+		return "INPUT: \tOutput Dimensions: " + str(self.outputDimension())
+
+
 class OutputGene(Gene):
 	"""
 	"""
@@ -193,6 +207,12 @@ class OutputGene(Gene):
 
 		pass
 
+	def __str__(self):
+		"""
+		"""
+
+		return "OUTPUT:\tOutput Dimensions: " + str(self.outputDimension())
+
 
 class DummyGene(Gene):
 	"""
@@ -220,6 +240,12 @@ class DummyGene(Gene):
 
 	def mutate(self, prevGene, nextGene):
 		pass
+
+	def __str__(self):
+		"""
+		"""
+
+		return "DUMMY: \tOutput Dimensions: " + str(self.outputDimension())
 
 
 class Conv1DGene(Gene):
@@ -307,6 +333,13 @@ class Conv1DGene(Gene):
 		pass
 
 
+	def __str__(self):
+		"""
+		"""
+
+		return "CONV1D:\tKernel: " + str((self.kernel_shape) + (self.num_kernels,)) + ";\tStride: " + str(self.stride) + ";\tOutput Dimensions: " + str(self.outputDimension())
+
+
 class Conv2DGene(Gene):
 	"""
 	"""
@@ -392,6 +425,12 @@ class Conv2DGene(Gene):
 		"""
 		pass
 
+	def __str__(self):
+		"""
+		"""
+
+		return "CONV2D:\tKernel: " + str((self.kernel_shape) + (self.num_kernels,)) + ";\tStride: " + str(self.stride) + ";\tOutput Dimensions: " + str(self.outputDimension())
+
 
 class Pool1DGene(Gene):
 	"""
@@ -476,6 +515,13 @@ class Pool1DGene(Gene):
 		pass
 
 
+	def __str__(self):
+		"""
+		"""
+
+		return "POOL1D:\tPool Shape: " + str(self.pool_shape) + ";\tStride: " + str(self.stride) + ";\tOutput Dimensions: " + str(self.outputDimension())
+
+
 class Pool2DGene(Gene):
 	"""
 	"""
@@ -558,6 +604,13 @@ class Pool2DGene(Gene):
 		pass
 
 
+	def __str__(self):
+		"""
+		"""
+
+		return "POOL2D:\tPool Shape: " + str(self.pool_shape) + ";\tStride: " + str(self.stride) + ";\tOutput Dimensions: " + str(self.outputDimension())
+
+
 class FullyConnectedGene(Gene):
 	"""
 	"""
@@ -604,8 +657,16 @@ class FullyConnectedGene(Gene):
 		"""
 		pass
 
+
+	def __str__(self):
+		"""
+		"""
+
+		return "F.CONN:\tOutput Dimensions: " + str(self.outputDimension())
+
+
 """
-# Helper function
+# Helper functions --- Genotypes will implement one set of generators
 # randomly generate a ConvGene based on the lastGene's output dimension
 """
 def generate1DConvGene(lastGene):
@@ -662,113 +723,130 @@ def generate2DPoolGene(lastGene):
 	return Pool2DGene((pool_height, pool_width), (pool_stride_height, pool_stride_width))
 
 
-"""
-# Helper function
-# randomly generate a FullyConnectedGene based on the lastGene's output dimension
-"""
-def generateFullConnectedGene(FullyConnectedGene, lastGene):
-	## specify the min and max for each random functions
-	size = np.random.randint(MIN_FULL_CONNECTION, MAX_FULL_CONNECTION+1)
+class Genotype:
+	"""
+	A representation of a full network
+	"""
 
-	# activation_function ???
-	return FullyConnectedGene(size, activation_function=None)
+	def __init__(self, input_shape, output_size, conv_prob = 1.0, pooling_prob = 1.0, fullConnection_prob = 0.5):
+		"""
+		Create a random genotype
+		"""
 
-"""
-Create a list of genes that describes a random, valid CNN
-"""
-def generateGenotypeProb(input_size, output_size, ConvProb, PoolProb=1.0, FullConnectProb = 0.5):
+		self.input_shape = input_shape
+		self.output_size = output_size
 
-	# Is this a 1D or 2D input shape?
-	if len(input_size) == 2:
-		is2D = False
-	else:
-		is2D = True
+		# Probabilities of generating convolution, pooling and fully connected layers
+		self.convolutionProb = conv_prob
+		self.poolingProb = pooling_prob
+		self.fullConnectionProb = fullConnection_prob
 
-	# Pick out the appropriate Gene types
-	if is2D:
-		generateConvGene = generate2DConvGene
-		generatePoolGene = generate2DPoolGene
-	else:
-		generateConvGene = generate1DConvGene
-		generatePoolGene = generate1DPoolGene
-
-	lastGene = InputGene(input_size)
-	outGene = OutputGene(output_size)
-
-	lastGene.next_gene = outGene
-
-	genotype = [lastGene]
-	print(lastGene.outputDimension())
-
-	#### NOTE: May need to have two generateConvGene and generatePoolGene, for each possible shape (1D and 2D)
-
-	# Add convolution layers (and possibly pooling layers) until a random check fails
-	while random.random() < ConvProb:
-		if MIN_CNN_WIDTH > lastGene.outputDimension()[0]:
-			break
-		if is2D and MIN_CNN_WIDTH > lastGene.outputDimension()[1]:
-			break
-
-		# Add the Convolution layer, with random arguments...
-		tmpGene = generateConvGene(lastGene)
-		tmpGene.next_gene = outGene
-		print('kernel_size: {}, conv_stride: {}, num_kernels: {}'.format(tmpGene.kernel_shape, tmpGene.stride, tmpGene.num_kernels))
-		if tmpGene.canFollow(lastGene):
-			lastGene.next_gene = tmpGene
-			tmpGene.prev_gene = lastGene
-			lastGene = tmpGene
-			genotype.append(lastGene)
-			print(lastGene.outputDimension())
-			print("ConvGene added!")
+		# Is this a 1D or 2D CNN?
+		if len(input_shape) == 3:
+			self.is2D = True
+			self.__generateConvGene = generate2DConvGene
+			self.__generatePoolGene = generate2DPoolGene
+		elif len(input_shape) == 2:
+			self.is2D = False
+			self.__generateConvGene = generate1DConvGene
+			self.__generatePoolGene = generate1DPoolGene
 		else:
-			print("ConvGene can not follow lastGene - %s!" % lastGene.type)
-			print('Failed to create a Genotype!')
-			print('=======================')
-			return
+			# Not a valid input shape
+			print "Invalid input dimensionality: %d" % len(input_shape)
 
-		# Should a pooling layer be added?
-		if random.random() < PoolProb:
-			if MIN_POOL_SIZE > lastGene.outputDimension()[0] :
+		# Create a gentopye
+		self.genotype = self.generateGenotype()
+
+
+	def __generateFullConnection(self, lastGene):
+		## specify the min and max for each random functions
+		size = np.random.randint(MIN_FULL_CONNECTION, MAX_FULL_CONNECTION+1)
+
+		# activation_function ???
+		return FullyConnectedGene(size, activation_function=None)
+
+
+	def generateGenotype(self):
+		"""
+		Create the actual genotype
+		"""
+
+		lastGene = InputGene(self.input_shape)
+		outGene = OutputGene(self.output_size)
+
+		lastGene.next_gene = outGene
+
+		genotype = [lastGene]
+
+		# Add the Convolutional Layers (and pooling layers)
+		while random.random() < self.convolutionProb:
+			if MIN_CNN_WIDTH > lastGene.outputDimension()[0]:
 				break
-			if is2D and MIN_POOL_SIZE > lastGene.outputDimension()[1]:
+			if self.is2D and MIN_CNN_WIDTH > lastGene.outputDimension()[1]:
 				break
-			tmpGene = generatePoolGene(lastGene)
-			tmpGene.next_gene = outGene
-			print('kernel_size: {}, pool_stride: {}'.format(tmpGene.pool_shape, tmpGene.stride))
-			if tmpGene.canFollow(lastGene):
-				lastGene.next_gene = tmpGene
-				tmpGene.prev_gene = lastGene
-				lastGene = tmpGene
+
+			# Add the convolution layer, with random genes
+			tempGene = self.__generateConvGene(lastGene)
+			tempGene.next_gene = outGene
+
+			if tempGene.canFollow(lastGene):
+				lastGene.next_gene = tempGene
+				tempGene.prev_gene = lastGene
+				lastGene = tempGene
 				genotype.append(lastGene)
-				print(lastGene.outputDimension())
-				print("PoolGene added!")
 			else:
-				print("PoolGene can not follow lastGene - %s!" % lastGene.type)
-				print('Failed to create a Genotype!')
-				print('=======================')
-				return
+				# Failed to create a genotype
+				return None
 
-	# Added all the Convolution layers, now add FC layers
-	while random.random() < FullConnectProb:
-		# Add a fully connected layer
-		tmpGene = generateFullConnectedGene(FullyConnectedGene, lastGene)
-		tmpGene.next_gene = outGene
-		if tmpGene.canFollow(lastGene):
-			lastGene.next_gene = tmpGene
-			tmpGene.prev_gene = lastGene
-			lastGene = tmpGene
-			genotype.append(lastGene)
-			print(lastGene.outputDimension())
-			print("FullyConnectedGene added!")
-		else:
-			print("FullyConnectedGene can not follow lastGene - %s!" % lastGene.type)
-			print('Failed to create a Genotype!')
-			print('=======================')
-			return
+			# Should this be followed by a pooling layer?
+			if random.random() < self.poolingProb:
+				if MIN_POOL_SIZE > lastGene.outputDimension()[0]:
+					break
+				if self.is2D and MIN_POOL_SIZE > lastGene.outputDimension()[1]:
+					break
 
-	print('Successfuly Created a Genotype!')
-	print('=======================')
+				tempGene = self.__generatePoolGene(lastGene)
+				tempGene.next_gene = outGene
 
-	genotype.append(outGene)
+				if tempGene.canFollow(lastGene):
+					lastGene.next_gene = tempGene
+					tempGene.prev_gene = lastGene
+					lastGene = tempGene
+					genotype.append(lastGene)
 
-	return genotype
+				else:
+					# Failed to create a genotype
+					return None
+
+		# Fill in fully connected layers
+		while random.random() < self.fullConnectionProb:
+			tempGene = self.__generateFullConnection(lastGene)
+			tempGene.next_gene = outGene
+
+			if tempGene.canFollow(lastGene):
+				lastGene.next_gene = tempGene
+				tempGene.prev_gene = lastGene
+				lastGene = tempGene
+				genotype.append(lastGene)
+
+			else:
+				# Failed to create a genotype
+				return None
+
+		# Genotype successfully created
+		genotype.append(outGene)
+
+		return genotype
+
+	def __str__(self):
+		"""
+		"""
+
+		string = ""
+
+		for gene in self.genotype[:-1]:
+			string += str(gene) + '\n'
+		string += str(self.genotype[-1])
+
+		return string
+
