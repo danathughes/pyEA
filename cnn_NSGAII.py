@@ -8,7 +8,7 @@ from visualizer import *
 
 
 # Parameters
-POPULATION_SIZE = 20
+POPULATION_SIZE = 200
 INPUT_SHAPE = (100,100,3)
 OUTPUT_SIZE = 10
 
@@ -24,5 +24,13 @@ class CNN_Individual(TmpIndividual):
 		TmpIndividual.__init__(self, INPUT_SHAPE, OUTPUT_SIZE)
 
 
-ga = NSGA_II(POPULATION_SIZE, CNN_Individual)
-vis = Visualizer()
+
+if __name__ == '__main__':
+	ga = NSGA_II(POPULATION_SIZE, CNN_Individual)
+	vis = Visualizer()
+
+	vis.plot(ga.population)
+
+	for i in range(1000):
+		ga.step()
+		vis.plot(ga.population)
