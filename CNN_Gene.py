@@ -79,6 +79,14 @@ class Gene:
 		return None
 
 
+	def minInputDimension(self):
+		"""
+		Recurse through next gene to figure out minimum valid input size
+		"""
+
+		pass
+
+
 	def clone(self):
 		"""
 		Make a copy of this gene
@@ -326,6 +334,31 @@ class Conv1DGene(Gene):
 		return self.dimension
 
 
+	def minInputDimension(self):
+		"""
+		Recurse through next gene to figure out minimum valid input size
+		"""
+
+		pass
+
+		### Rough idea of what this should be #################
+		# Fully Connected / output:
+		return (1,)
+
+
+		next_min_dimension = self.next_gene.minInputDimension()
+		if len(next_min_dimension) == 1:
+			# Next gene is Fully Connected or Output
+			min_dimension = (self.kernel_shape[0], 1)
+		else:
+			# Some weird 
+			# next_min_dimenaion == (12, 1)
+			min_dimension = (self.stride[0]*(next_min_dimension[0] - 1) + self.kernel_shape[0], next_min_dimension[1])
+
+		####################
+
+
+
 	def mutate(self):
 		"""
 		kernel_shape, stride and num_kernels should be mutated based on the constraints from 
@@ -344,6 +377,31 @@ class Conv1DGene(Gene):
 
 		# 
 		size_pre_out, num_pre_out = self.prev_gene.outputDimension()
+		size_next_in, num_next_in = self.next_gene.minInputDimension()
+
+		# Mutate the kernel
+		min_kernel_size = size_pre_out
+		max_kernel_size = size_next_in
+
+		min_pool_size = 1
+		max_pool_size = #????
+
+		min_num_kernels = 1
+		max_num_kernels = #?????
+
+		# What to mutate?
+		mutation = random.choice(['kernel_size', 'stride_size', 'num_kernels'])
+
+		if mutation == 'kernel_size':
+			# if can't
+			mutation = 'stride_size'
+			self.kernel_shape = (np.random.uniform(min_kernel_size, max_kernel_size).#...blah..
+		elif mutation == 'stride_size':
+			# if can't:
+			mutation = 'num_kernels'
+			self.stride = (...blah..., self.stride[1])
+		elif mutation == 'num_kernels':
+			self.num_kernels += ....
 
 		# from the gene previous to the first FC gene to self.next_gene
 		t_gene = self
