@@ -158,8 +158,13 @@ class InputGene(Gene):
 
 		return self.dimension
 
+	def minInputDimension(self):
+		"""
+		Recurse through next gene to figure out minimum valid input size
+		"""
+		return None
 
-	def mutate(self, prevGene, nextGene):
+	def mutate(self):
 		"""
 		"""
 		assert prevGene is None, "The input should not have previous gene!"
@@ -208,8 +213,14 @@ class OutputGene(Gene):
 
 		return self.dimension
 
+	def minInputDimension(self):
+		"""
+		Recurse through next gene to figure out minimum valid input size
+		"""
 
-	def mutate(self, prevGene, nextGene):
+		return (1,)
+
+	def mutate(self):
 		"""
 		"""
 
@@ -245,6 +256,11 @@ class DummyGene(Gene):
 
 	def outputDimension(self):
 		return self.shape
+
+	def minInputDimension(self):
+		"""
+		Recurse through next gene to figure out minimum valid input size
+		"""
 
 	def mutate(self, prevGene, nextGene):
 		pass
@@ -339,25 +355,17 @@ class Conv1DGene(Gene):
 		Recurse through next gene to figure out minimum valid input size
 		"""
 
-		pass
-
-		### Rough idea of what this should be #################
-		# Fully Connected / output:
-		return (1,)
-
-
 		next_min_dimension = self.next_gene.minInputDimension()
 		if len(next_min_dimension) == 1:
 			# Next gene is Fully Connected or Output
+			# next_min_dimension = (1,)
 			min_dimension = (self.kernel_shape[0], 1)
 		else:
-			# Some weird 
-			# next_min_dimenaion == (12, 1)
+			# Next gene is Conv1D or Pool1D
+			# next_min_dimenaion = (12, 1)
 			min_dimension = (self.stride[0]*(next_min_dimension[0] - 1) + self.kernel_shape[0], next_min_dimension[1])
 
-		####################
-
-
+		return min_dimension
 
 	def mutate(self):
 		"""
@@ -380,78 +388,50 @@ class Conv1DGene(Gene):
 		size_next_in, num_next_in = self.next_gene.minInputDimension()
 
 		# Mutate the kernel
-		min_kernel_size = size_pre_out
-		max_kernel_size = size_next_in
+		min_kernel_size = 2
+		max_kernel_size = size_pre_out-(size_next_in-1)*stride
 
-		min_pool_size = 1
-		max_pool_size = #????
+		min_stride_size = 1
+		if size_next_in > 1:
+			temp = (int)((size_pre_out-size)/(size_next_in-1))
+			max_stride_size = temp if temp<size else size
+		else:
+			max_stride_size = size
 
-		min_num_kernels = 1
-		max_num_kernels = #?????
-
-		# What to mutate?
+		# What to mutate
 		mutation = random.choice(['kernel_size', 'stride_size', 'num_kernels'])
 
+		"""
+		1. Make a list of possible values for a variable, list_values
+		2. Sample values on a distribution and make a list by normalizing them, list_probs
+		3. t_value = random.choice(list_values, list_probs)
+		"""
 		if mutation == 'kernel_size':
-			# if can't
-			mutation = 'stride_size'
-			self.kernel_shape = (np.random.uniform(min_kernel_size, max_kernel_size).#...blah..
-		elif mutation == 'stride_size':
-			# if can't:
-			mutation = 'num_kernels'
-			self.stride = (...blah..., self.stride[1])
-		elif mutation == 'num_kernels':
-			self.num_kernels += ....
-
-		# from the gene previous to the first FC gene to self.next_gene
-		t_gene = self
-		while t_gene.next_gene.type not FULLY_CONNECTED:
-			t_gene = t_gene.next_gene
-
-		size_cur_out = 1
-		while t_gene not self:
-			temp_size = t_gene.kernel_shape[0]
-			temp_stride = t_gene.stride[0]
-			size_cur_out = (size_cur_out-1)*temp_stride + temp_size
-
-		# 2<= current_size <= size_pre_out-(size_cur_out-1)*stride # size_cur_out = size_out
-		# 1<= current_stride <= (size_pre_out-current_size)/(size_cur_out-1)
-
-		validGene = False
-		factor = 0.5
-		while not validGene:
-			"""
-			1. Make a list of possible values for a variable, list_values
-			2. Sample values on a distribution and make a list by normalizing them, list_probs
-			3. t_value = random.choice(list_values, list_probs)
-			"""
-
-			size_list = list(range(2, size_pre_out-size_cur_out+1+1))
+			size_list = list(range(min_kernel_size, max_kernel_size+1))
 			size_list.remove(size)
 			if len(size_list) > 0:
-				t_size = random.choice(size_list)
+				self.kernel_shape = (random.choice(size_list), )
 			else:
-				t_size = size
-
-			stride_list = list(range(1,t_size+1))
+				mutation = 'stride_size'
+		elif mutation == 'stride_size':
+			stride_list = list(range(min_stride_size, max_stride_size+1))
 			stride_list.remove(stride)
 			if len(stride_list) > 0:
-				t_stride = random.choice(stride_list)
+				self.kernel_shape = (random.choice(stride_list), )
 			else:
-				t_stride = stride
+				mutation = 'num_kernels'
+		else: # mutation == 'num_kernels'
+			factor = 0.45 # less than 0.5 so that the num_kernels got will always be in [1, N]
+			self.num_kernels = (int)random.uniform(num_kernels*(1-factor), num_kernels*(1+factor))
 
-			t_num = (int)random.uniform(num_kernels*(1-factor), num_kernels*(1+factor))
-
-			# reset the variable value to the min or max if it is out of [min, max]
-			if t_num <= 0:
-				t_num = num_kernels
-
-			self.kernel_shape = (t_size,)
-			self.stride = (t_stride,)
-			self.num_kernels = t_num
-
-			# after some change, check validity of the new gene
-			validGene = self.canFollow(self.prev_gene)
+		# after some change, check validity of the new gene
+		if self.canFollow(self.prev_gene):
+			print "Mutated successfully...\n"
+		else:
+			self.kernel_shape = (size,)
+			self.stride = (stride,)
+			self.num_kernels = num_kernels
+			print "Failed to mutate...\n"
 
 
 	def __str__(self):
@@ -540,7 +520,7 @@ class Conv2DGene(Gene):
 		return self.dimension
 
 
-	def mutate(self, prevGene, nextGene):
+	def mutate(self):
 		"""
 		kernel_size, stride and num_kernels should be mutated based on the constraints from prevGene and nextGene
 		"""
@@ -628,7 +608,7 @@ class Pool1DGene(Gene):
 		return self.dimension
 
 
-	def mutate(self, prevGene, nextGene):
+	def mutate(self):
 		"""
 		kernel_size, stride should be mutated based on the constraints from prevGene and nextGene
 		"""
@@ -718,7 +698,7 @@ class Pool2DGene(Gene):
 		return self.dimension
 
 
-	def mutate(self, prevGene, nextGene):
+	def mutate(self):
 		"""
 		kernel_size, stride and num_kernels should be mutated based on the constraints from prevGene and nextGene		
 		"""
@@ -771,11 +751,18 @@ class FullyConnectedGene(Gene):
 
 		return self.dimension
 
+	def minInputDimension(self):
+		"""
+		Recurse through next gene to figure out minimum valid input size
+		"""
 
-	def mutate(self, prevGene, nextGene):
+		return (1,)
+
+	def mutate(self):
 		"""
 		size should be mutated based on the constraints from prevGene and nextGene		
 		"""
+
 		pass
 
 
@@ -1051,13 +1038,13 @@ class Genotype:
 		return child1, child2	
 
 
-	def mutate(self):
+	def mutate(self, i_mutateGene):
 		"""
 		Mutate this individual
 		"""
 
 		# Randomly select a gene in the Genotype, [Input, Conv, ..., FC, Output]
-		i_mutateGene = random.randrange(1, len(self.genotype))
+		# i_mutateGene = random.randrange(1, len(self.genotype))
 
 		# mutate the gene by modifying the parameters, Conv, Pool, or Fullyconnected (FC)
 		# also make sure the mutation is feasible, ie, the mutation introduces on conflicts 

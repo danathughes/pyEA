@@ -67,9 +67,12 @@ class CNN_Individual(AbstractIndividual):
 		return child1, child2
 
 
-	def mutate(self):
+	# Test Conv1D mutate
+	def mutate(self, i_mutateGene):
 		"""
 		Mutate this individual
 		"""
-		self.gene.mutate()
+		# Randomly select a gene in the Genotype, [Input, Conv, ..., FC, Output]
+		# i_mutateGene = random.randrange(1, len(self.genotype))
+		self.gene.mutate(i_mutateGene)
 		# 
