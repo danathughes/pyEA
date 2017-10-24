@@ -71,5 +71,5 @@ class CNN_Individual(AbstractIndividual):
 		"""
 		Mutate this individual
 		"""
-
-		pass
+		self.gene.mutate()
+		# 
