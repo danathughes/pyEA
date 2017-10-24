@@ -23,7 +23,7 @@ class CNN_Individual(AbstractIndividual):
 		self.output_size = output_size
 
 		self.gene = Genotype(input_shape, output_size)
-		self.objective = [1000*random.random(), 10000*random.random()]
+		self.objective = [1000*random.random(), 1000*random.random()]
 
 
 	def calculateObjective(self):

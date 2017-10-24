@@ -4,6 +4,8 @@
 
 from pyNSGAII import NSGA_II
 from CNN_Individual import CNN_Individual as TmpIndividual
+from visualizer import *
+
 
 # Parameters
 POPULATION_SIZE = 20
@@ -23,3 +25,4 @@ class CNN_Individual(TmpIndividual):
 
 
 ga = NSGA_II(POPULATION_SIZE, CNN_Individual)
+vis = Visualizer()
