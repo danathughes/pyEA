@@ -36,8 +36,8 @@ class Visualizer:
 		x = [ind.objective[self.x_ind] for ind in population]
 		y = [ind.objective[self.y_ind] for ind in population]
 
-		plt_data.set_xdata(x)
-		plt_data.set_ydata(y)
+		self.plt_data.set_xdata(x)
+		self.plt_data.set_ydata(y)
 
 		self.fig.canvas.draw()
 
