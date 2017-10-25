@@ -2,9 +2,13 @@
 ##
 ##
 
+
+from __future__ import print_function
+
 from pyNSGAII import NSGA_II
 from CNN_Individual import CNN_Individual as TmpIndividual
 from visualizer import *
+
 
 
 # Parameters

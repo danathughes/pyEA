@@ -4,6 +4,7 @@
 
 import matplotlib.pyplot as plt
 
+
 class Visualizer:
 	"""
 	Plots Pareto front of a population

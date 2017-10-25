@@ -8,8 +8,10 @@
 ## "A Fast and Elistist Multiobjective Genetic Algorithm: NSGA-II," 
 ## IEEE Transactions on Evolutionary Computation, vol. 6, no. 2, April 2002.
 
+
 import numpy as np
 import matplotlib.pyplot as plt
+
 
 
 class AbstractIndividual:
