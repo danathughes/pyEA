@@ -13,7 +13,7 @@ from ProxyEvaluator import *
 
 # Parameters
 POPULATION_SIZE = 200
-INPUT_SHAPE = (100,3)
+INPUT_SHAPE = (100,120,3)
 OUTPUT_SIZE = 10
 
 TENSORFLOW_EVALUATOR = ProxyEvaluator()
@@ -33,8 +33,8 @@ class CNN_Individual(TmpIndividual):
 
 
 if __name__ == '__main__':
-	ga = NSGA_II(POPULATION_SIZE, CNN_Individual, 
-		          sort_callback=TENSORFLOW_EVALUATOR.evaluate, 
+	ga = NSGA_II(POPULATION_SIZE, CNN_Individual,
+		          sort_callback=TENSORFLOW_EVALUATOR.evaluate,
 		          step_callback=TENSORFLOW_EVALUATOR.reset)
 	vis = Visualizer()
 
