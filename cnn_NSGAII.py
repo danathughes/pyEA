@@ -13,7 +13,7 @@ from ProxyEvaluator import *
 
 # Parameters
 POPULATION_SIZE = 200
-INPUT_SHAPE = (100,100,3)
+INPUT_SHAPE = (100,3)
 OUTPUT_SIZE = 10
 
 TENSORFLOW_EVALUATOR = ProxyEvaluator()

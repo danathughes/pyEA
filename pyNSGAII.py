@@ -160,7 +160,7 @@ class NSGA_II:
 
 		# There may be an extra individual if the population had an odd number
 		return children[:self.population_size]
-
+		
 
 	def step(self):
 		"""
