@@ -129,7 +129,7 @@ class NSGA_II:
 
 		# Possible callback function(s)
 		self.step_callback = kwargs.get('step_callback', None)
-		self.child_callback = kwargs.get('child_callback', None)
+		self.sort_callback = kwargs.get('sort_callback', None)
 
 
 	def generate_children(self):
@@ -154,10 +154,9 @@ class NSGA_II:
 			children.append(offspring1)
 			children.append(offspring2)
 
-			# Call the callback function, passing each child
-			if self.child_callback:
-				self.child_callback(offspring1)
-				self.child_callback(offspring2)
+			# Evaluate each child's objective function
+			offspring1.calculateObjective()
+			offspring2.calculateObjective()
 
 		# There may be an extra individual if the population had an odd number
 		return children[:self.population_size]
@@ -168,12 +167,12 @@ class NSGA_II:
 		Perform an NSGA-II step
 		"""
 
-		parents = self.population
-		children = self.generate_children()
-
 		# Call the step callback function
 		if self.step_callback:
 			self.step_callback()
+
+		parents = self.population
+		children = self.generate_children()
 
 		# Temporarily merge the two populations to create a new one
 		self.population = parents + children
@@ -192,6 +191,9 @@ class NSGA_II:
 		"""
 		Sort the population
 		"""
+
+		if self.sort_callback:
+			self.sort_callback()
 
 		# Determine the non-dominated fronts
 		fronts = self.__fastNonDominatedSort()

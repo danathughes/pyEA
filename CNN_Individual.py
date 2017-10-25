@@ -13,7 +13,7 @@ class CNN_Individual(AbstractIndividual):
 	An individual encoding a CNN
 	"""
 
-	def __init__(self, input_shape, output_size):
+	def __init__(self, input_shape, output_size, evaluator):
 		"""
 		"""
 
@@ -23,16 +23,16 @@ class CNN_Individual(AbstractIndividual):
 		self.output_size = output_size
 
 		self.gene = Genotype(input_shape, output_size)
-		self.objective = [1000*random.random(), 1000*random.random()]
+		self.objective = None
+
+		self.evaluator = evaluator
 
 
 	def calculateObjective(self):
 		"""
 		"""
 
-		# Gotta implement this by feeding the gene to a tensorflow evaluator
-		self.objective[0] += 10*random.random() - 5
-		self.objective[1] += 10*random.random() - 5
+		self.evaluator.add(self)
 
 
 	def clone(self):
