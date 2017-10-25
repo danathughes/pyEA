@@ -23,7 +23,7 @@ class CNN_Individual(AbstractIndividual):
 		self.output_size = output_size
 
 		self.gene = Genotype(input_shape, output_size)
-		self.objective = None
+		self.objective = [1000*random.random(), 1000*random.random()]
 
 		self.evaluator = evaluator
 
@@ -50,8 +50,8 @@ class CNN_Individual(AbstractIndividual):
 		Perform crossover between these two genes
 		"""
 
-		child1 = CNN_Individual(self.input_shape, self.output_size)
-		child2 = CNN_Individual(self.input_shape, self.output_size)
+		child1 = CNN_Individual(self.input_shape, self.output_size, self.evaluator)
+		child2 = CNN_Individual(self.input_shape, self.output_size, self.evaluator)
 
 		gene1, gene2 = self.gene.crossover(other.gene)
 		child1.gene = gene1
@@ -68,11 +68,11 @@ class CNN_Individual(AbstractIndividual):
 
 
 	# Test Conv1D mutate
-	def mutate(self, i_mutateGene):
+	def mutate(self):
 		"""
 		Mutate this individual
 		"""
 		# Randomly select a gene in the Genotype, [Input, Conv, ..., FC, Output]
 		# i_mutateGene = random.randrange(1, len(self.genotype))
-		self.gene.mutate(i_mutateGene)
+		self.gene.mutate()
 		# 

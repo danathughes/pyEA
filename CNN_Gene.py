@@ -393,7 +393,7 @@ class Conv1DGene(Gene):
 
 		min_stride_size = 1
 		if size_next_in > 1:
-			temp = (int)((size_pre_out-size)/(size_next_in-1))
+			temp = int((size_pre_out-size)/(size_next_in-1))
 			max_stride_size = temp if temp<size else size
 		else:
 			max_stride_size = size
@@ -422,7 +422,7 @@ class Conv1DGene(Gene):
 				mutation = 'num_kernels'
 		else: # mutation == 'num_kernels'
 			factor = 0.45 # less than 0.5 so that the num_kernels got will always be in [1, N]
-			self.num_kernels = (int)random.uniform(num_kernels*(1-factor), num_kernels*(1+factor))
+			self.num_kernels = int(random.uniform(num_kernels*(1-factor), num_kernels*(1+factor)))
 
 		# after some change, check validity of the new gene
 		if self.canFollow(self.prev_gene):
@@ -1038,7 +1038,7 @@ class Genotype:
 		return child1, child2	
 
 
-	def mutate(self, i_mutateGene):
+	def mutate(self):
 		"""
 		Mutate this individual
 		"""
@@ -1050,4 +1050,5 @@ class Genotype:
 		# also make sure the mutation is feasible, ie, the mutation introduces on conflicts 
 		# on the constraints
 
-		self.genotype[i_mutateGene].mutate()
+		pass
+#		self.genotype[i_mutateGene].mutate()
