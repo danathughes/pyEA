@@ -112,7 +112,7 @@ class NSGA_II:
 	"""
 	"""
 
-	def __init__(self, population_size, IndividualClass):
+	def __init__(self, population_size, IndividualClass, **kwargs):
 		"""
 		Create a new population
 		"""
@@ -126,6 +126,10 @@ class NSGA_II:
 		self.generation = 0
 
 		self.selection = tournamentSelection
+
+		# Possible callback function(s)
+		self.step_callback = kwargs.get('step_callback', None)
+		self.child_callback = kwargs.get('child_callback', None)
 
 
 	def generate_children(self):
@@ -150,6 +154,11 @@ class NSGA_II:
 			children.append(offspring1)
 			children.append(offspring2)
 
+			# Call the callback function, passing each child
+			if self.child_callback:
+				self.child_callback(offspring1)
+				self.child_callback(offspring2)
+
 		# There may be an extra individual if the population had an odd number
 		return children[:self.population_size]
 
@@ -161,6 +170,10 @@ class NSGA_II:
 
 		parents = self.population
 		children = self.generate_children()
+
+		# Call the step callback function
+		if self.step_callback:
+			self.step_callback()
 
 		# Temporarily merge the two populations to create a new one
 		self.population = parents + children
