@@ -423,17 +423,32 @@ class Conv1DGene(Gene):
 			else:
 				mutation = 'num_kernels'
 		else: # mutation == 'num_kernels'
-			factor = 0.45 # less than 0.5 so that the num_kernels got will always be in [1, N]
-			self.num_kernels = int(random.uniform(num_kernels*(1-factor), num_kernels*(1+factor)))
+			factor = 0.5
+			min_size = int(num_kernels*(1-factor))
+			min_size = 1 if min_size<1 else min_size
+			max_size = int(num_kernels*(1+factor))
+
+			size_list = list(range(min_size, max_size+1))
+			if num_kernels in size_list:
+				size_list.remove(num_kernels)
+			
+
+			if len(size_list)>0:
+				self.num_kernels = random.choice(size_list)
+			else:
+				print "Failed to mutate...\n"
+				return False
 
 		# after some change, check validity of the new gene
 		if self.canFollow(self.prev_gene):
 			print "Mutated successfully...\n"
+			return True
 		else:
 			self.kernel_shape = (size,)
 			self.stride = (stride,)
 			self.num_kernels = num_kernels
 			print "Failed to mutate...\n"
+			return False
 
 
 	def __str__(self):
@@ -681,16 +696,18 @@ class Pool1DGene(Gene):
 				self.stride = (random.choice(stride_list), )
 			else:
 				print "Failed to mutate...\n"
+				return False
 
 		# after some change, check validity of the new gene
 		if self.canFollow(self.prev_gene):
 			print "Mutated successfully...\n"
+			return True
 		else:
 			self.pool_shape = (size,)
 			self.stride = (stride,)
 			self.num_kernels = num_kernels
 			print "Failed to mutate...\n"
-
+			return False
 
 
 	def __str__(self):
@@ -839,8 +856,23 @@ class FullyConnectedGene(Gene):
 		"""
 		size should be mutated based on the constraints from prevGene and nextGene		
 		"""
+		factor = 0.5
+		min_size = int(self.size*(1-factor))
+		min_size = 1 if min_size<1 else min_size
+		max_size = int(self.size*(1+factor))
 
-		pass
+		size_list = list(range(min_size, max_size+1))
+		if self.size in size_list:
+			size_list.remove(self.size)
+
+		if len(size_list)>0:
+			self.size = random.choice(size_list)
+			self.dimension = self.size
+			print "Mutation on FullyConnectedGene Succeeded...\n"
+			return True
+		else:
+			print "Mutation on FullyConnectedGene Failed...\n"
+			return False
 
 
 	def __str__(self):
