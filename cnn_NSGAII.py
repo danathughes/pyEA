@@ -3,18 +3,35 @@
 ##
 
 
-from __future__ import print_function
+# from __future__ import print_function
 
 from pyNSGAII import NSGA_II
 from CNN_Individual import CNN_Individual as TmpIndividual
 from visualizer import *
+import ConfigParser # Python3: configparser
 
 from ProxyEvaluator import *
 
-# Parameters
-POPULATION_SIZE = 200
-INPUT_SHAPE = (100,120,3)
-OUTPUT_SIZE = 10
+# Read parameters from Congfig file
+
+config = ConfigParser.ConfigParser()
+config.read('NSGA_II.cfg')
+
+POPULATION_SIZE = config.getint('NSGA_II', 'population_size')
+OUTPUT_SIZE = config.getint('NSGA_II', 'output_size')
+
+input_shape1 = config.getint('NSGA_II', 'input_shape1')
+input_shape2 = config.getint('NSGA_II', 'input_shape2')
+input_shape3 = config.getint('NSGA_II', 'input_shape3')
+
+if input_shape3 == 0:
+	INPUT_SHAPE = (input_shape1, input_shape2)
+else:
+	INPUT_SHAPE = (input_shape1, input_shape2, input_shape3)
+
+print 'INPUT_SHAPE:\t\t', INPUT_SHAPE
+print 'OUTPUT_SIZE:\t\t', OUTPUT_SIZE
+print 'POPULATION_SIZE:\t', POPULATION_SIZE
 
 TENSORFLOW_EVALUATOR = ProxyEvaluator()
 
