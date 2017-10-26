@@ -76,3 +76,21 @@ class CNN_Individual(AbstractIndividual):
 		# i_mutateGene = random.randrange(1, len(self.genotype))
 		self.gene.mutate()
 		# 
+
+
+	def generate_model(self, namespace=None, input_tensor=None):
+		"""
+		Build the tensorflow model
+		"""
+
+		prev_tensor = input_tensor
+
+		tensors = []
+
+		for gene in self.gene.genotype:
+			prev_tensor = gene.generateLayer(prev_tensor)
+			tensors.append(prev_tensor)
+
+		# Return the input and output tensor
+		return tensors[0], tensors[-1]
+

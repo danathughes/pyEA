@@ -107,7 +107,7 @@ class Gene:
 		pass
 
 
-	def generateLayer(self):
+	def generateLayer(self, input_tensor):
 		"""
 		Create the CNN part(s) (tuple of objects) used to construct this particular layer in the CNN
 		"""
@@ -175,12 +175,15 @@ class InputGene(Gene):
 		print "You are mutating an input, not allowed!"
 
 
-	def generateLayer(self):
+	def generateLayer(self, input_tensor=None):
 		"""
 		Input layer is simply a placeholder tensor, with dimensionality given
 		"""
 
-		self.tensor = tf.placeholder(tf.float32, (None,) + self.dimension)
+		if input_tensor:
+			self.tensor = input_tensor
+		else:
+			self.tensor = tf.placeholder(tf.float32, (None,) + self.dimension)
 
 		return self.tensor
 
@@ -241,16 +244,14 @@ class OutputGene(Gene):
 		pass
 
 
-	def generateLayer(self):
+	def generateLayer(self, input_tensor):
 		"""
 		The output is a Softmax layer (for now).  Need to make different outputs?
 		"""
 
-		# Get the previous tensor
-		input_tensor = self.prev_gene.generateLayer()
+		# Is the input tensor flat?  If not, flatten
 		input_shape = input_tensor.get_shape().as_list()[1:]
 
-		# Is the input tensor flat?  If not, flatten
 		if len(input_shape) > 1:
 			input_tensor = tf.contrib.layers.flatten(input_tensor)
 			input_shape = input_tensor.get_shape().as_list()[1:]
@@ -485,13 +486,12 @@ class Conv1DGene(Gene):
 			return False
 
 
-	def generateLayer(self):
+	def generateLayer(self, input_tensor):
 		"""
 		Create a 1D convolutional layer
 		"""
 
-		# Get the previous tensor
-		input_tensor = self.prev_gene.generateLayer()
+		# Get the previous tensor shape
 		input_shape = input_tensor.get_shape().as_list()[1:]
 
 		# Create the convolution weights and bias
@@ -713,13 +713,12 @@ class Conv2DGene(Gene):
 			return False
 
 
-	def generateLayer(self):
+	def generateLayer(self, input_tensor):
 		"""
 		Create a 2D convolutional layer
 		"""
 
-		# Get the previous tensor
-		input_tensor = self.prev_gene.generateLayer()
+		# Get the previous tensor shape
 		input_shape = input_tensor.get_shape().as_list()[1:]
 
 		# Create the convolution weights and bias
@@ -899,13 +898,10 @@ class Pool1DGene(Gene):
 			return False
 
 
-	def generateLayer(self):
+	def generateLayer(self, input_tensor):
 		"""
 		Create a 1D pooling layer
 		"""
-
-		# Get the previous tensor
-		input_tensor = self.prev_gene.generateLayer()
 
 		self.tensor = tf.layers.max_pooling1d(input_tensor, self.pool_shape, self.stride)
 
@@ -1098,13 +1094,10 @@ class Pool2DGene(Gene):
 			return False
 
 
-	def generateLayer(self):
+	def generateLayer(self, input_tensor):
 		"""
 		Create a 1D pooling layer
 		"""
-
-		# Get the previous tensor
-		input_tensor = self.prev_gene.generateLayer()
 
 		self.tensor = tf.layers.max_pooling2d(input_tensor, self.pool_shape, self.stride)
 
@@ -1187,13 +1180,12 @@ class FullyConnectedGene(Gene):
 			self.dimension = self.size
 
 
-	def generateLayer(self):
+	def generateLayer(self, input_tensor):
 		"""
 		The output is a Fully Connected layer.
 		"""
 
 		# Get the previous tensor
-		input_tensor = self.prev_gene.generateLayer()
 		input_shape = input_tensor.get_shape().as_list()[1:]
 
 		# Is the input tensor flat?  If not, flatten
