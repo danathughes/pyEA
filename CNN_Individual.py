@@ -78,7 +78,7 @@ class CNN_Individual(AbstractIndividual):
 		# 
 
 
-	def generate_model(self, namespace=None, input_tensor=None):
+	def generate_model(self, input_tensor=None):
 		"""
 		Build the tensorflow model
 		"""

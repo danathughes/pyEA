@@ -180,7 +180,7 @@ class InputGene(Gene):
 		Input layer is simply a placeholder tensor, with dimensionality given
 		"""
 
-		if input_tensor:
+		if input_tensor is not None:
 			self.tensor = input_tensor
 		else:
 			self.tensor = tf.placeholder(tf.float32, (None,) + self.dimension)

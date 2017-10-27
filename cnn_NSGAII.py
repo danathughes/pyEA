@@ -55,8 +55,14 @@ if __name__ == '__main__':
 		          step_callback=TENSORFLOW_EVALUATOR.reset)
 	vis = Visualizer()
 
+	# Evaluate the initial population
+	for individual in ga.population:
+		individual.calculateObjective()
+
+	TENSORFLOW_EVALUATOR.evaluate()
+
 	vis.plot(ga.population)
 
-	for i in range(1000):
+	for i in range(100):
 		ga.step()
 		vis.plot(ga.population)
