@@ -27,7 +27,7 @@ OUTPUT = "OUTPUT"
 
 import random
 import numpy as np
-from models.parts import *
+#from models.parts import *
 
 import tensorflow as tf
 

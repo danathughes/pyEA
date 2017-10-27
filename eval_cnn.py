@@ -4,10 +4,39 @@
 
 import tensorflow as tf
 import cPickle as pickle
+import numpy as np
 
 import sys
 
 from cnn_NSGAII import CNN_Individual
+
+BATCH_SIZE = 1000
+
+def make_batches(X, y, batch_size=BATCH_SIZE, shuffle=True):
+	"""
+	Get some batches
+	"""
+
+	X_batches = []
+	y_batches = []
+
+	# Randomize the indices
+	if shuffle:
+		idx = np.random.permutation(len(X))
+	else:
+		idx = np.array(range(len(X)))
+
+	cur_idx = 0
+
+	while cur_idx < len(X):
+		end_idx = min(cur_idx + batch_size, len(X))
+		X_batches.append(X[idx[cur_idx:end_idx]])
+		y_batches.append(y[idx[cur_idx:end_idx]])
+
+		cur_idx += batch_size
+
+	return X_batches, y_batches
+
 
 class Models:
 	"""
@@ -82,9 +111,13 @@ class Models:
 		Run a train step on all models
 		"""
 
-		fd = {self.input: X, self.target: y}
+		x_batch, y_batch = make_batches(X, y)
 
-		self.sess.run(self.train_steps, feed_dict=fd)
+		for _x, _y in zip(x_batch, y_batch):
+
+			fd = {self.input: _x, self.target: _y}
+
+			self.sess.run(self.train_steps, feed_dict=fd)
 
 
 	def loss(self, X, y):
@@ -92,9 +125,17 @@ class Models:
 		Calculate the losses
 		"""
 
-		fd = {self.input: X, self.target: y}
+		total_loss = 0.0
 
-		return self.sess.run(self.losses, feed_dict=fd)
+		x_batch, y_batch = make_batches(X,y)
+
+		for _x, _y in zip(x_batch, y_batch):
+
+			fd = {self.input: _x, self.target: _y}
+
+			total_loss += len(_x)*self.sess.run(self.losses, feed_dict=fd)
+
+		return total_loss / len(X)
 
 
 	def accuracy(self, X, y):
@@ -102,9 +143,17 @@ class Models:
 		Calculate the accuracies
 		"""
 
-		fd = {self.input: X, self.target: y}
+		correct = 0.0
 
-		return self.sess.run(self.accuracies, feed_dict=fd)
+		x_batch, y_batch = make_batches(X,y)
+
+		for _x, _y in zip(x_batch, y_batch):
+
+			fd = {self.input: _x, self.target: _y}
+
+			correct += len(_x)*self.sess.run(self.accuracies, feed_dict=fd)
+
+		return correct / len(X)
 
 
 	def param_count(self):
@@ -155,7 +204,8 @@ if __name__ == '__main__':
 	dataset = pickle.load(pickle_file)
 	pickle_file.close()
 
-	X, y = dataset
+	X, y = dataset['train']
+	X_valid, y_valid = dataset['validate']
 
 	# Create the tensorflow models
 	models = Models(population)
@@ -175,8 +225,8 @@ if __name__ == '__main__':
 		print
 
 	# All done training, get the objectives
-	losses = models.loss(X,y)
-	accuracies = models.accuracy(X,y)
+	losses = models.loss(X_valid,y_valid)
+	accuracies = models.accuracy(X_valid,y_valid)
 	num_params = models.param_count()
 
 	# Apply the objectives to each individual in the population
