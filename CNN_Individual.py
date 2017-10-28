@@ -75,7 +75,6 @@ class CNN_Individual(AbstractIndividual):
 		# Randomly select a gene in the Genotype, [Input, Conv, ..., FC, Output]
 		# i_mutateGene = random.randrange(1, len(self.genotype))
 		self.gene.mutate()
-		# 
 
 
 	def generate_model(self, input_tensor=None):
