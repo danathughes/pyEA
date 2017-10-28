@@ -171,9 +171,8 @@ class InputGene(Gene):
 	def mutate(self):
 		"""
 		"""
-		assert prevGene is None, "The input should not have previous gene!"
-		print "You are mutating an input, not allowed!"
 
+		return False 		# This cannot mutate!
 
 	def generateLayer(self, input_tensor=None):
 		"""
@@ -241,7 +240,7 @@ class OutputGene(Gene):
 		"""
 		"""
 
-		pass
+		return False       # This cannot mutate
 
 
 	def generateLayer(self, input_tensor):
@@ -1480,12 +1479,20 @@ class Genotype:
 		Mutate this individual
 		"""
 
-		# Randomly select a gene in the Genotype, [Input, Conv, ..., FC, Output]
-		# i_mutateGene = random.randrange(1, len(self.genotype))
+		# Shuffle the indices of the genotype, and perform mutation on the items in the list until sucessful
+		idx = range(len(self.genotype))
+		idx = np.random.permutation(idx)
 
-		# mutate the gene by modifying the parameters, Conv, Pool, or Fullyconnected (FC)
-		# also make sure the mutation is feasible, ie, the mutation introduces on conflicts
-		# on the constraints
+		mutated = False
 
-		pass
-		# self.genotype[i_mutateGene].mutate()
+		i = 0
+
+		while not mutated:
+			mutated = self.genotype[idx[i]].mutate()
+			i += 1
+
+		if not mutated:
+			print "Didn't mutate!"
+
+		return mutated
+

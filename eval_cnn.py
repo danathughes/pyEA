@@ -125,17 +125,19 @@ class Models:
 		Calculate the losses
 		"""
 
-		total_loss = 0.0
+		total_loss = [0.0] * len(self.population)
 
 		x_batch, y_batch = make_batches(X,y)
 
 		for _x, _y in zip(x_batch, y_batch):
 
 			fd = {self.input: _x, self.target: _y}
+			loss = self.sess.run(self.losses, feed_dict=fd)
 
-			total_loss += len(_x)*self.sess.run(self.losses, feed_dict=fd)
+			for i in range(len(total_loss)):
+				total_loss[i] += float(len(_x)*loss[i]) / len(X)
 
-		return total_loss / len(X)
+		return total_loss
 
 
 	def accuracy(self, X, y):
@@ -143,7 +145,7 @@ class Models:
 		Calculate the accuracies
 		"""
 
-		correct = 0.0
+		total_accuracy = [0.0] * len(self.population)
 
 		x_batch, y_batch = make_batches(X,y)
 
@@ -151,9 +153,12 @@ class Models:
 
 			fd = {self.input: _x, self.target: _y}
 
-			correct += len(_x)*self.sess.run(self.accuracies, feed_dict=fd)
+			correct = self.sess.run(self.accuracies, feed_dict=fd)
 
-		return correct / len(X)
+			for i in range(len(total_accuracy)):
+				total_accuracy[i] += float(len(_x) * correct[i]) / len(X)
+
+		return total_accuracy 
 
 
 	def param_count(self):
@@ -210,9 +215,23 @@ if __name__ == '__main__':
 	# Create the tensorflow models
 	models = Models(population)
 
+
+	print "Step %d" % 0, "\t",
+	losses = models.loss(X,y)
+	accs = models.accuracy(X,y)
+
+	for l in losses:
+		print '%f, ' % l,
+	print '\t',
+	for a in accs:
+		print '%f, ' % (100*a),
+
+	print
+
+
 	for i in range(20):
 		models.train(X, y)
-		print "Step %d" % i, "\t",
+		print "Step %d" % (i+1), "\t",
 		losses = models.loss(X,y)
 		accs = models.accuracy(X,y)
 
