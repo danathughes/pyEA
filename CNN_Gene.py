@@ -99,7 +99,7 @@ class Gene:
 		pass
 
 
-	def mutate(self, prevGene, nextGene):
+	def mutate(self):
 		"""
 		Alter this gene, ensuring that the constraints from the previous and next gene are satisfied
 		"""
@@ -226,7 +226,7 @@ class OutputGene(Gene):
 	def outputDimension(self, prevGene=None):
 		"""
 		"""
-	
+
 		return self.dimension
 
 	def minInputDimension(self):
@@ -299,7 +299,7 @@ class DummyGene(Gene):
 		Recurse through next gene to figure out minimum valid input size
 		"""
 
-	def mutate(self, prevGene, nextGene):
+	def mutate(self):
 		pass
 
 	def __str__(self):

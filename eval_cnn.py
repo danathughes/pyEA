@@ -74,7 +74,7 @@ class Models:
 			individual = self.population[i]
 			namespace = 'Individual_%d' % i
 			output_tensor, loss, accuracy, train_step = self.build_model(individual, namespace)
-			
+
 			self.outputs.append(output_tensor)
 			self.losses.append(loss)
 			self.accuracies.append(accuracy)
@@ -158,7 +158,7 @@ class Models:
 			for i in range(len(total_accuracy)):
 				total_accuracy[i] += float(len(_x) * correct[i]) / len(X)
 
-		return total_accuracy 
+		return total_accuracy
 
 
 	def param_count(self):
@@ -247,6 +247,9 @@ if __name__ == '__main__':
 	losses = models.loss(X_valid,y_valid)
 	accuracies = models.accuracy(X_valid,y_valid)
 	num_params = models.param_count()
+
+	# Release resources
+	models.sess.close()
 
 	# Apply the objectives to each individual in the population
 	objectives = []
