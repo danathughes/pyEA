@@ -45,8 +45,10 @@ MAX_POOL_STRIDE = 5
 MIN_FULL_CONNECTION = 5
 MAX_FULL_CONNECTION = 200
 
+MUTATE_ADD_PROB = 0.1
+MUTATE_REMOVE_PROB = 0.1
+MUTATE_MODIFY_PROB = 0.8
 
-MUTATION_PROBS = (0.25, 0.25, 0.5)   # (ADD, REMOVE, CHANGE)
 
 class Gene:
 	"""
@@ -1587,33 +1589,91 @@ class Genotype:
 		Mutate this individual
 		"""
 
-		# How should this be mutated?  Add, remove or modify layer
-		rnd = np.random.random()
-		mutation = None
-
-		if rnd < MUTATION_PROBS[0]:
-			mutation = 'ADD'
-		elif rnd < MUTATION_PROBS[0] + MUTATION_PROBS[1]:
-			mutation = 'REMOVE'
-		else:
-			mutation = 'CHANGE'
-
-
-
-		# Shuffle the indices of the genotype, and perform mutation on the items in the list until sucessful
-		idx = range(len(self.genotype))
-		idx = np.random.permutation(idx)
-
+		added = False
+		removed = False
 		mutated = False
 
-		i = 0
+		# Should a layer be added?
+		if np.random.random() < MUTATE_ADD_PROB:
+			# Right now, should be able to add after any layer
+			idx = np.random.randint(0,len(self.genotype) - 1)
 
-		while not mutated:
-			mutated = self.genotype[idx[i]].mutate()
-			i += 1
+			# Available layers
+			layer_types = []
 
-		if not mutated:
-			print "Didn't mutate!"
+			# Can add a convolutional layer if the previous layer is input, convolutional or pooling
+			if self.genotype[idx].type in [INPUT, CONV1D, CONV2D, POOL1D, POOL2D]:
+				layer_types.append('conv')
 
-		return mutated
+			# Can add a pooling lyaer if the previous layer is input or convolutional, and if
+			# the next layer isn't a pooling layer
+			if self.genotype[idx].type in [INPUT, CONV1D, CONV2D] and not self.genotype[idx+1].type in [POOL1D,POOL2D]:
+				layer_types.append('pool')
+
+			# Can add a fully connected layer if the next layer is fully connected or output
+			if self.genotype[idx].type in [FULLY_CONNECTED, OUTPUT]:
+				layer_types.append('fc')
+
+			# Pick a layer type
+			layer_type = np.random.choice(layer_types)
+
+			if layer_type == 'conv':
+				layer = __generateConvGene(self.genotype[idx], self.genotype[idx+1])
+			elif layer_type == 'pool':
+				layer = __generatePoolGene(self.genotype[idx], self.genotype[idx+1])
+			elif layer_type == 'fc':
+				layer = __generateFullConnection(self.genotype[idx])
+
+			self.genotype = self.genotype[:idx+1] + [layer] + self.genotype[idx+1:]
+			self.link_genes()
+
+			# Clean up the genotype
+			added = True
+
+
+		# Should a layer be removed?
+		if np.random.random() < MUTATE_REMOVE_PROB:
+
+			# Shuffle the indices of the genotype, and try to remove a layer until successful
+			idx = range(len(self.genotype))
+			idx = np.random.permutation(idx)
+
+			i = 0
+
+			while not removed:
+				# Cannot remove the input or output layer
+				if self.genotype[idx[i]].type == INPUT or self.genotype[idx[i]].type == OUTPUT:
+					i += 1
+				# Can't remove a layer which would put two pooling layers next to each other
+				elif self.genotype[idx[i]-1].type == POOL1D and self.genotype[idx[i]+1].type == POOL1D:
+					i += 1
+				elif self.genotype[idx[i]-1].type == POOL2D and self.genotype[idx[i]+1].type == POOL2D:
+					i += 1
+				else:
+					# Go ahead and remove this!
+					self.genotype = self.genotype[:idx[i]] + self.genotype[idx[i]+1:]
+					removed = True
+
+			# Clean up the genotype
+			self.link_genes()
+
+
+		if np.random.random() < MUTATE_MODIFY_PROB:
+			# Shuffle the indices of the genotype, and perform mutation on the items in the list until sucessful
+			idx = range(len(self.genotype))
+			idx = np.random.permutation(idx)
+
+			i = 0
+
+			while not mutated:
+				mutated = self.genotype[idx[i]].mutate()
+				i += 1
+
+			if not mutated:
+				print "Didn't mutate!"
+
+			self.link_genes()
+
+		# Inform if the genotype has actually changed
+		return mutated or added or removed
 
