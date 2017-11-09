@@ -1280,7 +1280,7 @@ def generate2DConvGene(lastGene, nextGene):
 	# The stride can be up to 
 	# ((input_size - kernel_size + 1) / min_output_size) + 1
 	max_stride_height = ((input_height - kernel_height + 1) / min_output_height) + 1
-	max_stride_width = ((input_width - kernel_widht + 1) / min_output_width) + 1
+	max_stride_width = ((input_width - kernel_width + 1) / min_output_width) + 1
 
 	max_stride_height = min(MAX_CNN_STRIDE, max_stride_height)
 	max_stride_width = min(MAX_CNN_STRIDE, max_stride_width)
@@ -1403,7 +1403,7 @@ class Genotype:
 		Make a copy of this genotype
 		"""
 
-		clone = Genotype(self.input_shape, self.output_shape, self.convolutionProb, self.poolingProb, self.fullConnectionProb)
+		clone = Genotype(self.input_shape, self.output_size, self.convolutionProb, self.poolingProb, self.fullConnectionProb)
 		clone.genotype = [gene.clone() for gene in self.genotype]
 		for i in range(len(clone.genotype) - 1):
 			clone.genotype[i].next_gene = clone.genotype[i+1]
@@ -1560,10 +1560,6 @@ class Genotype:
 		for j in range(crossover_point[1], len(gene2)):
 			child_gene1.append(gene2[j].clone())
 
-		# Link the previous and next genes in each child
-		child_gene1.link_genes()
-		child_gene2.link_genes()
-
 #		for i in range(len(child_gene1) - 1):
 #			child_gene1[i].next_gene = child_gene1[i+1]
 #		for i in range(1, len(child_gene1)):
@@ -1581,6 +1577,10 @@ class Genotype:
 		child1.genotype = child_gene1
 		child2.genotype = child_gene2
 
+		# Link the previous and next genes in each child
+		child1.link_genes()
+		child2.link_genes()
+
 		return child1, child2
 
 
@@ -1588,6 +1588,9 @@ class Genotype:
 		"""
 		Mutate this individual
 		"""
+
+		if True:
+			return True
 
 		added = False
 		removed = False
@@ -1618,11 +1621,11 @@ class Genotype:
 			layer_type = np.random.choice(layer_types)
 
 			if layer_type == 'conv':
-				layer = __generateConvGene(self.genotype[idx], self.genotype[idx+1])
+				layer = self.__generateConvGene(self.genotype[idx], self.genotype[idx+1])
 			elif layer_type == 'pool':
-				layer = __generatePoolGene(self.genotype[idx], self.genotype[idx+1])
+				layer = self.__generatePoolGene(self.genotype[idx], self.genotype[idx+1])
 			elif layer_type == 'fc':
-				layer = __generateFullConnection(self.genotype[idx])
+				layer = self.__generateFullConnection(self.genotype[idx])
 
 			self.genotype = self.genotype[:idx+1] + [layer] + self.genotype[idx+1:]
 			self.link_genes()
@@ -1663,9 +1666,12 @@ class Genotype:
 			idx = range(len(self.genotype))
 			idx = np.random.permutation(idx)
 
+			print idx
+
 			i = 0
 
-			while not mutated:
+			while not mutated and i < len(self.genotype):
+				print idx[i]
 				mutated = self.genotype[idx[i]].mutate()
 				i += 1
 
