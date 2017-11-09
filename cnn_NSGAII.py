@@ -8,33 +8,17 @@
 from pyNSGAII import NSGA_II
 from CNN_Individual import CNN_Individual as TmpIndividual
 from visualizer import *
-import ConfigParser # Python3: configparser
 
 from ProxyEvaluator import *
 
-# Read parameters from Congfig file
+import config_loader
 
-config = ConfigParser.ConfigParser()
-config.read('NSGA_II.cfg')
-
-POPULATION_SIZE = config.getint('NSGA_II', 'population_size')
-OUTPUT_SIZE = config.getint('NSGA_II', 'output_size')
-
-input_shape1 = config.getint('NSGA_II', 'input_shape1')
-input_shape2 = config.getint('NSGA_II', 'input_shape2')
-input_shape3 = config.getint('NSGA_II', 'input_shape3')
-
-if input_shape3 == 0:
-	INPUT_SHAPE = (input_shape1, input_shape2)
-else:
-	INPUT_SHAPE = (input_shape1, input_shape2, input_shape3)
-
-print 'INPUT_SHAPE:\t\t', INPUT_SHAPE
-print 'OUTPUT_SIZE:\t\t', OUTPUT_SIZE
-print 'POPULATION_SIZE:\t', POPULATION_SIZE
 
 TENSORFLOW_EVALUATOR = ProxyEvaluator()
 
+config = config_loader.load('NSGA_II.cfg')
+INPUT_SHAPE = config['input_shape']
+OUTPUT_SIZE = config['output_size']
 
 class CNN_Individual(TmpIndividual):
 	"""
@@ -50,9 +34,11 @@ class CNN_Individual(TmpIndividual):
 
 
 if __name__ == '__main__':
-	ga = NSGA_II(POPULATION_SIZE, CNN_Individual,
+
+	ga = NSGA_II(config['population_size'], CNN_Individual,
 		          sort_callback=TENSORFLOW_EVALUATOR.evaluate,
 		          step_callback=TENSORFLOW_EVALUATOR.reset)
+
 	vis = Visualizer()
 
 	# Evaluate the initial population

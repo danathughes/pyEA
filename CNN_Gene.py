@@ -1560,16 +1560,6 @@ class Genotype:
 		for j in range(crossover_point[1], len(gene2)):
 			child_gene1.append(gene2[j].clone())
 
-#		for i in range(len(child_gene1) - 1):
-#			child_gene1[i].next_gene = child_gene1[i+1]
-#		for i in range(1, len(child_gene1)):
-#			child_gene1[i].prev_gene = child_gene1[i-1]
-
-#		for i in range(len(child_gene2) - 1):
-#			child_gene2[i].next_gene = child_gene2[i+1]
-#		for i in range(1, len(child_gene2)):
-#			child_gene2[i].prev_gene = child_gene2[i-1]
-
 		# Done!
 		child1 = Genotype(self.input_shape, self.output_size, self.convolutionProb, self.poolingProb, self.fullConnectionProb)
 		child2 = Genotype(self.input_shape, self.output_size, self.convolutionProb, self.poolingProb, self.fullConnectionProb)
