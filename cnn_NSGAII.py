@@ -5,13 +5,13 @@
 
 # from __future__ import print_function
 
-from pyNSGAII import NSGA_II
-from CNN_Individual import CNN_Individual as TmpIndividual
-from visualizer import *
+from nsga.pyNSGAII import NSGA_II
+from nsga.CNN_Individual import CNN_Individual as TmpIndividual
+from nsga.utils.visualizer import *
+from nsga.utils import config_loader
 
 from ProxyEvaluator import *
 
-import config_loader
 
 
 TENSORFLOW_EVALUATOR = ProxyEvaluator()
@@ -49,6 +49,16 @@ if __name__ == '__main__':
 
 	vis.plot(ga.population)
 
-	for i in range(100):
+	print "==="
+	print "Current Population Objectives:"
+	for p in ga.population:
+		print "  ", p.objective
+
+
+	for i in range(10):
 		ga.step()
 		vis.plot(ga.population)
+		print "==="
+		print "Current Population Objectives:"
+		for p in ga.population:
+			print "  ", p.objective
