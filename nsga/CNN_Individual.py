@@ -13,7 +13,7 @@ class CNN_Individual(AbstractIndividual):
 	An individual encoding a CNN
 	"""
 
-	def __init__(self, input_shape, output_size, evaluator):
+	def __init__(self, input_shape, output_size, evaluator, mutation_rate = 0.20):
 		"""
 		"""
 
@@ -24,6 +24,8 @@ class CNN_Individual(AbstractIndividual):
 
 		self.gene = Genotype(input_shape, output_size)
 		self.objective = [1000*random.random(), 1000*random.random()]
+
+		self.mutation_rate = mutation_rate
 
 		self.evaluator = evaluator
 
@@ -40,7 +42,7 @@ class CNN_Individual(AbstractIndividual):
 		Make a copy of me!
 		"""
 
-		clone = CNN_Individual()
+		clone = CNN_Individual(self.input_shape, self.output_shape, self.evaluator)
 		clone.gene = self.gene.clone()
 		clone.objective = self.objective
 
@@ -57,12 +59,18 @@ class CNN_Individual(AbstractIndividual):
 		child1.gene = gene1
 		child2.gene = gene2
 
+		# If the genes were not created, try mutating the parent genes.  If that doesn't work,
+		# just create a whole new gene
 		if gene1 == None:
 			child1.gene = self.gene.clone()
-			child1.mutate()
+			mutated = child1.gene.mutate()
+			if not mutated:
+				child1.gene = Genotype(self.input_shape, self.output_size)
 		if gene2 == None:
 			child2.gene = other.gene.clone()
-			child2.mutate()
+			mutated = child2.gene.mutate()
+			if not mutated:
+				child2.gene = Genotype(self.input_shape, self.output_size)
 
 		return child1, child2
 
@@ -72,9 +80,12 @@ class CNN_Individual(AbstractIndividual):
 		"""
 		Mutate this individual
 		"""
-		# Randomly select a gene in the Genotype, [Input, Conv, ..., FC, Output]
-		# i_mutateGene = random.randrange(1, len(self.genotype))
-		self.gene.mutate()
+
+		# The NSGA-II algorithm automatically calls mutate.  Would like to
+		# have mutation actually be a rare occurance, due to crossover
+
+		if random.random() < self.mutation_rate:
+			self.gene.mutate()
 
 
 	def generate_model(self, input_tensor=None):

@@ -45,8 +45,8 @@ MAX_POOL_STRIDE = 5
 MIN_FULL_CONNECTION = 5
 MAX_FULL_CONNECTION = 200
 
-MUTATE_ADD_PROB = 0.
-MUTATE_REMOVE_PROB = 0.6
+MUTATE_ADD_PROB = 0.2
+MUTATE_REMOVE_PROB = 0.2
 MUTATE_MODIFY_PROB = 0.8
 
 
@@ -479,13 +479,11 @@ class Conv1DGene(Gene):
 
 		# after some change, check validity of the new gene
 		if self.canFollow(self.prev_gene):
-			print "Mutated successfully...\n"
 			return True
 		else:
 			self.kernel_shape = (size,)
 			self.stride = (stride,)
 			self.num_kernels = num_kernels
-			print "Failed to mutate (Gene not valid)\n"
 			return False
 
 
@@ -706,13 +704,11 @@ class Conv2DGene(Gene):
 			self.num_kernels = t_num_kernels
 		# after some change, check validity of the new gene
 		if self.canFollow(self.prev_gene):
-			print "Mutated successfully...\n"
 			return True
 		else:
 			self.kernel_shape = size
 			self.stride = stride
 			self.num_kernels = num_kernels
-			print "Failed to mutate (Gene not valid)\n"
 			return False
 
 
@@ -729,7 +725,14 @@ class Conv2DGene(Gene):
 		weights = tf.Variable(tf.truncated_normal(filter_shape, stddev=0.05))
 		bias = tf.Variable(tf.constant(0.0, shape=(self.num_kernels,)))
 
-		self.tensor = tf.nn.relu(tf.nn.conv2d(input_tensor, weights, (1,) + self.stride + (1,), 'VALID') + bias)
+		try:
+			self.tensor = tf.nn.relu(tf.nn.conv2d(input_tensor, weights, (1,) + self.stride + (1,), 'VALID') + bias)
+		except:
+			print "Error!"
+			print "Input Shape:", input_tensor.get_shape()
+			print "Kernel Shape:", self.kernel_shape
+			print "Num Kernels:", self.num_kernels
+
 
 		return self.tensor
 
@@ -886,18 +889,15 @@ class Pool1DGene(Gene):
 			if len(stride_list) > 0:
 				self.stride = (random.choice(stride_list), )
 			else:
-				print "Failed to mutate (No params to choose)\n"
 				return False
 
 		# after some change, check validity of the new gene
 		if self.canFollow(self.prev_gene):
-			print "Mutated successfully...\n"
 			return True
 		else:
 			self.pool_shape = (size,)
 			self.stride = (stride,)
 			self.num_kernels = num_kernels
-			print "Failed to mutate (Gene not valid)\n"
 			return False
 
 
@@ -1079,7 +1079,6 @@ class Pool2DGene(Gene):
 				if len(stride_list) > 0:
 					t_stride[i] = random.choice(stride_list)
 				else:
-					print "Failed to mutate (No params to choose)\n"
 					return False
 		if mutation == 'pool_size':
 			self.pool_shape = tuple(t_size)
@@ -1087,13 +1086,10 @@ class Pool2DGene(Gene):
 			self.stride = tuple(t_stride)
 		# after some change, check validity of the new gene
 		if self.canFollow(self.prev_gene):
-			print "Mutated successfully...\n"
 			return True
 		else:
 			self.kernel_shape = size
 			self.stride = stride
-			self.num_kernels = num_kernels
-			print "Failed to mutate (Gene not valid)\n"
 			return False
 
 
@@ -1176,7 +1172,6 @@ class FullyConnectedGene(Gene):
 		if len(size_list)>0:
 			self.size = random.choice(size_list)
 			self.dimension = self.size
-			print "Mutation on FullyConnectedGene Succeeded...\n"
 			return True
 		else:
 			self.size = np.random.randint(MIN_FULL_CONNECTION, MAX_FULL_CONNECTION+1)
@@ -1264,6 +1259,7 @@ def generate2DConvGene(lastGene, nextGene):
 	## specify the min and max for each random functions
 
 	# What are the boundaries of this gene (input and output size)
+
 	input_height, input_width, _ = lastGene.outputDimension()
 	min_output_size = nextGene.minInputDimension()
 
@@ -1605,15 +1601,44 @@ class Genotype:
 		Mutate this individual
 		"""
 
-#		if True:
-#			return True
-
 		added = False
 		removed = False
 		mutated = False
 
+
+		# Should a layer be removed?
+		if np.random.random() < MUTATE_REMOVE_PROB:
+
+			print "Try to remove gene;",
+
+			# Shuffle the indices of the genotype, and try to remove a layer until successful
+			idx = range(len(self.genotype))
+			idx = np.random.permutation(idx)
+
+			i = 0
+
+			while not removed and i < len(idx):
+				# Cannot remove the input or output layer
+				if self.genotype[idx[i]].type == INPUT or self.genotype[idx[i]].type == OUTPUT:
+					i += 1
+				# Can't remove a layer which would put two pooling layers next to each other
+				elif self.genotype[idx[i]-1].type == POOL1D and self.genotype[idx[i]+1].type == POOL1D:
+					i += 1
+				elif self.genotype[idx[i]-1].type == POOL2D and self.genotype[idx[i]+1].type == POOL2D:
+					i += 1
+				else:
+					# Go ahead and remove this!
+					self.genotype = self.genotype[:idx[i]] + self.genotype[idx[i]+1:]
+					removed = True
+					print "Removed Gene;",
+
+			# Clean up the genotype
+			self.link_genes()
+
+
 		# Should a layer be added?
 		if np.random.random() < MUTATE_ADD_PROB:
+
 			print "Try to add gene;",
 			"""
 			ISSUE:  Adding a 2D Convolutional layer sometimes generates incorrect layers (i.e., kernel size bigger than input...)
@@ -1648,62 +1673,49 @@ class Genotype:
 				layer = self.__generateFullConnection(self.genotype[idx])
 
 			if layer:
-				self.genotype = self.genotype[:idx+1] + [layer] + self.genotype[idx+1:]
-				self.link_genes()
+				# Sanity check--is the output dimensionality negative for any element from this layer?
+				dummy_input = DummyGene(self.genotype[idx].outputDimension())
+				layer.prev_gene = dummy_input
+				layer_output_size = layer.outputDimension()
 
-				# Clean up the genotype
-				added = True
-				print "Added Gene;",
+				if layer_type == 'fc':
+					layer_output_size = (layer_output_size,)
+
+				is_valid = True
+				for d in layer_output_size:
+					if d < 1:
+						is_valid = False
+
+				if not is_valid:
+					print "Gene not added - negative dimension output:", layer_type, ";"
+					added = False
+				else:
+					self.genotype = self.genotype[:idx+1] + [layer] + self.genotype[idx+1:]
+					self.link_genes()
+
+					# Clean up the genotype
+					added = True
+					print "Added Gene;",
 			else:
 				print "Gene not added - unable to create: ", layer_type, ";"
 
 
-		# Should a layer be removed?
-		if np.random.random() < MUTATE_REMOVE_PROB:
-			print "Try to remove gene;",
-#		if False:
-			# Shuffle the indices of the genotype, and try to remove a layer until successful
-			idx = range(len(self.genotype))
-			idx = np.random.permutation(idx)
+		if np.random.random() < MUTATE_MODIFY_PROB:
 
-			i = 0
+			print "Trying to mutate gene;",
 
-			while not removed and i < len(idx):
-				# Cannot remove the input or output layer
-				if self.genotype[idx[i]].type == INPUT or self.genotype[idx[i]].type == OUTPUT:
-					i += 1
-				# Can't remove a layer which would put two pooling layers next to each other
-				elif self.genotype[idx[i]-1].type == POOL1D and self.genotype[idx[i]+1].type == POOL1D:
-					i += 1
-				elif self.genotype[idx[i]-1].type == POOL2D and self.genotype[idx[i]+1].type == POOL2D:
-					i += 1
-				else:
-					# Go ahead and remove this!
-					self.genotype = self.genotype[:idx[i]] + self.genotype[idx[i]+1:]
-					removed = True
-					print "Removed Gene;",
-
-			# Clean up the genotype
-			self.link_genes()
-
-
-#		if np.random.random() < MUTATE_MODIFY_PROB:
-		if False:
 			# Shuffle the indices of the genotype, and perform mutation on the items in the list until sucessful
 			idx = range(len(self.genotype))
 			idx = np.random.permutation(idx)
 
-			print idx
-
 			i = 0
 
 			while not mutated and i < len(idx):
-				print idx[i]
 				mutated = self.genotype[idx[i]].mutate()
 				i += 1
 
-			if not mutated:
-				print "Didn't mutate!"
+			if mutated:
+				print "Mutated Gene;",
 
 			self.link_genes()
 
@@ -1712,5 +1724,6 @@ class Genotype:
 			print "Did not mutate!"
 		else:
 			print
-		return mutated or added or removed
 
+
+		return mutated or added or removed

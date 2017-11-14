@@ -229,7 +229,7 @@ if __name__ == '__main__':
 	print
 
 
-	for i in range(20):
+	for i in range(50):
 		models.train(X, y)
 		print "Step %d" % (i+1), "\t",
 		losses = models.loss(X,y)

@@ -10,7 +10,7 @@ class Visualizer:
 	Plots Pareto front of a population
 	"""
 
-	def __init__(self, indices = [0,1], axis_range = [-0.1, 1.1, -10.0, 10000.0], save_old = True):
+	def __init__(self, indices = [0,1], axis_range = [0.0, 1.0, 0.0, 50000.0], save_old = True):
 		"""
 		"""
 
