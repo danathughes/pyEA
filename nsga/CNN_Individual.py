@@ -13,7 +13,7 @@ class CNN_Individual(AbstractIndividual):
 	An individual encoding a CNN
 	"""
 
-	def __init__(self, input_shape, output_size, evaluator, mutation_rate = 0.20):
+	def __init__(self, input_shape, output_size, evaluator, mutation_rate = 0.25):
 		"""
 		"""
 
