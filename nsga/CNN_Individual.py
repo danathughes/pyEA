@@ -88,10 +88,18 @@ class CNN_Individual(AbstractIndividual):
 			self.gene.mutate()
 
 
-	def generate_model(self, input_tensor=None):
+	def generate_model(self, input_tensor):
 		"""
 		Build the tensorflow model
 		"""
+
+		if input_tensor == None:
+			print "ARGH!"
+			print self
+			print
+			print self.gene
+			print
+			return None
 
 		prev_tensor = input_tensor
 
@@ -99,6 +107,10 @@ class CNN_Individual(AbstractIndividual):
 
 		for gene in self.gene.genotype:
 			prev_tensor = gene.generateLayer(prev_tensor)
+			if prev_tensor == None:
+				print "AAARG!"
+				print gene
+				print
 			tensors.append(prev_tensor)
 
 		# Return the input and output tensor

@@ -55,7 +55,7 @@ if __name__ == '__main__':
 		print "  ", p.objective
 
 
-	for i in range(100):
+	for i in range(250):
 		ga.step()
 		vis.plot(ga.population)
 		print "==="
