@@ -10,11 +10,11 @@ from nsga.CNN_Individual import CNN_Individual as TmpIndividual
 from nsga.utils.visualizer import *
 from nsga.utils import config_loader
 
-from ProxyEvaluator import *
+#from ProxyEvaluator import *
+from SingleNetworkEvaluator import *
 
-
-
-TENSORFLOW_EVALUATOR = ProxyEvaluator()
+#TENSORFLOW_EVALUATOR = ProxyEvaluator()
+TENSORFLOW_EVALUATOR = SingleNetworkEvaluator('mnist.pkl')
 
 config = config_loader.load('NSGA_II.cfg')
 INPUT_SHAPE = config['input_shape']
@@ -35,9 +35,11 @@ class CNN_Individual(TmpIndividual):
 
 if __name__ == '__main__':
 
-	ga = NSGA_II(config['population_size'], CNN_Individual,
-		          sort_callback=TENSORFLOW_EVALUATOR.evaluate,
-		          step_callback=TENSORFLOW_EVALUATOR.reset)
+#	ga = NSGA_II(config['population_size'], CNN_Individual,
+#		          sort_callback=TENSORFLOW_EVALUATOR.evaluate,
+#		          step_callback=TENSORFLOW_EVALUATOR.reset)
+
+	ga = NSGA_II(config['population_size'], CNN_Individual)
 
 	vis = Visualizer()
 
