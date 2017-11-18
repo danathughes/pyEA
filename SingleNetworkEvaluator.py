@@ -42,7 +42,7 @@ class SingleNetworkEvaluator:
 	"""
 	"""
 
-	def __init__(self, dataset_filename, population_path='./population', train_steps=100):
+	def __init__(self, dataset_filename, population_path='./population', train_steps=250):
 		"""
 		Create an object with the dataset loaded, and a path to store individuals and results
 		"""
@@ -88,8 +88,12 @@ class SingleNetworkEvaluator:
 
 		self.has_model = False
 
-
 		self.num_train_steps = train_steps
+
+		self.sess_config = tf.ConfigProto(allow_soft_placement=True)
+		self.sess_config.gpu_options.allocator_type='BFC'
+#		self.sess_config.gpu_options.per_process_gpu_memory_fraction = 0.90
+#		self.sess_config.gpu_options.allow_growth = True
 
 
 	def __build_model(self, individual):
@@ -199,14 +203,18 @@ class SingleNetworkEvaluator:
 
 		# Save the individual
 		filename = self.population_path + '/individual_%d.pkl' % self.individual_num
-		results_name = self.population_path + '/objectives_%d.pkl' % self.individual_num
+		results_filename = self.population_path + '/objectives_%d.pkl' % self.individual_num
 
-		with open(filename, 'wb') as pickle_file:
-			pickle.dump(str(individual.gene), pickle_file)
+		pickle_file = open(filename, 'wb')
+		pickle.dump(individual.gene, pickle_file)
+		pickle_file.close()
+
+#		with open(filename, 'wb') as pickle_file:
+#			pickle.dump(str(individual.gene), pickle_file)
 
 		# Delete whatever is in the current graph
 		tf.reset_default_graph()
-		self.sess = tf.InteractiveSession()
+		self.sess = tf.Session(config = self.sess_config)
 
 		self.input = tf.placeholder(tf.float32, (None,) + self.input_shape)
 		self.target = tf.placeholder(tf.float32, (None,) + self.target_shape)
@@ -215,6 +223,9 @@ class SingleNetworkEvaluator:
 		# Try to make the model
 		self.has_model = False
 	#	with tf.variable_scope('model'):
+#		with tf.device('/device:GPU:0'):
+#		with tf.device('/device:GPU:1'):
+#		with tf.device('/cpu:0'):
 		self.__build_model(individual)
 		self.sess.run(tf.global_variables_initializer())
 
@@ -232,8 +243,9 @@ class SingleNetworkEvaluator:
 			print "Model #%d: Num Params: %d; Validation Loss: %f; Accuracy: %f" % (self.individual_num, num_params, loss, accuracy)
 
 		# Save the results
-		with open(results_name, 'wb') as pickle_file:
-			pickle.dump([1.0 - accuracy, num_params], pickle_file)
+		pickle_file = open(results_filename, 'wb')
+		pickle.dump([1.0 - accuracy, num_params], pickle_file)
+		pickle_file.close()
 
 		# Update the individual's objective
 		individual.objective = [1.0 - accuracy, num_params]

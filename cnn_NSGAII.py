@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
 	ga = NSGA_II(config['population_size'], CNN_Individual)
 
-	vis = Visualizer()
+#	vis = Visualizer()
 
 	# Evaluate the initial population
 	for individual in ga.population:
@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
 	TENSORFLOW_EVALUATOR.evaluate()
 
-	vis.plot(ga.population)
+#	vis.plot(ga.population)
 
 	print "==="
 	print "Current Population Objectives:"
@@ -59,7 +59,7 @@ if __name__ == '__main__':
 
 	for i in range(250):
 		ga.step()
-		vis.plot(ga.population)
+#		vis.plot(ga.population)
 		print "==="
 		print "Current Population Objectives:"
 		for p in ga.population:
