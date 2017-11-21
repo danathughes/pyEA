@@ -1,6 +1,20 @@
-# MOEA for CNN architecture tuning
+# MOEA for CNN Architecture Tuning
 
 __We aim to automatically tune optical CNN architectures for different tasks using Multiobjective Evolutionary Algorithm. An optical CNN architecture should either have higher accuracy or have smaller number of parameters to save memory and computation.__
+
+Table of Contents
+* [TODO list](#todo-list)
+* [Evolutionary Algorithms, EAs](#evolutionary-algorithms--eas)
+* [Multiobjective Evolutionary Algorithms, MOEAs](#multiobjective-evolutionary-algorithms--moeas)
+* [Convolutional Neural Network, CNN](#convolutional-neural-network--cnn)
+* [Corresponding Genotype Construction](#corresponding-genotype-construction)
+* [Operators: crossover and computation](#operators--crossover-and-computation)
+
+## TODO list
+- Check identity to avoid evaluate the same solution
+- Externel statistic object to guide mutation
+- Cross validation
+- 
 
 ## Evolutionary Algorithms, EAs
 Evolutionary Algorithms (EAs) are a non-deterministic algorithm to solve optimization problems for optimal solutions.
