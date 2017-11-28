@@ -47,6 +47,19 @@ class CNN_Individual(AbstractIndividual):
 		clone.objective = self.objective
 
 
+	def isEqual(self, other):
+		"""
+		Check if 'I' have the same genotype as 'other' does
+		"""
+
+		if len(self.gene.genotype) == len(other.gene.genotype):
+			for i in range(len(self.gene.genotype)):
+				if str(self.gene.genotype[i]) != str(other.gene.genotype[i]):
+					return False
+			return True
+		else:
+			return False
+
 	def crossover(self, other):
 		"""
 		Perform crossover between these two genes

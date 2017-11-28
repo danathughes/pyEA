@@ -1235,7 +1235,7 @@ def generate1DConvGene(lastGene, nextGene):
 
 	kernel_size = np.random.randint(MIN_CNN_WIDTH, max_size+1)
 
-	# The stride can be up to 
+	# The stride can be up to
 	# ((input_size - kernel_size + 1) / min_output_size) + 1
 	max_stride = ((input_size - kernel_size + 1) / min_output_size) + 1
 	max_stride = min(MAX_CNN_STRIDE, max_stride)
@@ -1284,7 +1284,7 @@ def generate2DConvGene(lastGene, nextGene):
 	kernel_height = np.random.randint(MIN_CNN_WIDTH, max_height+1)
 	kernel_width = np.random.randint(MIN_CNN_WIDTH, max_width+1)
 
-	# The stride can be up to 
+	# The stride can be up to
 	# ((input_size - kernel_size + 1) / min_output_size) + 1
 	max_stride_height = ((input_height - kernel_height + 1) / min_output_height) + 1
 	max_stride_width = ((input_width - kernel_width + 1) / min_output_width) + 1
@@ -1316,7 +1316,7 @@ def generate1DPoolGene(lastGene, nextGene):
 	input_size = lastGene.outputDimension()[0]
 	min_output_size = nextGene.minInputDimension()[0]
 
-	# The largest the pooling size can be is 
+	# The largest the pooling size can be is
 	# input_size - min_output_size + 1
 	max_size = min(MAX_POOL_SIZE, input_size - min_output_size + 1)
 	if max_size < MIN_POOL_SIZE:
@@ -1433,6 +1433,13 @@ class Genotype:
 
 		return clone
 
+	# Moved to individual level
+	# def isEqual(self, other):
+	# 	"""
+	# 	Check if 'I' have the same genotype as 'other' does
+	# 	"""
+    #
+	# 	return self.genotype == other.genotype
 
 	def __generateFullConnection(self, lastGene, nextGene=None):
 		## specify the min and max for each random functions
