@@ -1569,16 +1569,15 @@ class Genotype:
 		# What are valid crossover points?
 		crossover_points = []
 
-		for i in range(1, len(gene1)):
-			for j in range(1, len(gene2)):
-				if gene1[i].canFollow(gene2[j-1]) and gene2[j].canFollow(gene1[i-1]):
-					# Are we just swapping inputs or outputs?
-					if i==1 and j==1:
-						pass
-					elif i==len(gene1) and j==len(gene2):
-						pass
-					else:
-						crossover_points.append((i,j))
+		for i, j in zip(range(1, len(gene1)), range(1, len(gene2))):
+			if gene1[i].canFollow(gene2[j-1]) and gene2[j].canFollow(gene1[i-1]):
+				# Are we just swapping inputs or outputs?
+				if i==1 and j==1:
+					pass
+				elif i==len(gene1) and j==len(gene2):
+					pass
+				else:
+					crossover_points.append((i,j))
 
 		# if the list is empty, cannot do anything (force a mutation)
 		if len(crossover_points) == 0:
