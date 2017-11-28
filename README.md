@@ -14,7 +14,7 @@ Table of Contents
 - Check identity to avoid evaluate the same solution
 - Externel statistic object to guide mutation
 - Cross validation
-- 
+- Checkpoint
 
 ## Evolutionary Algorithms, EAs
 Evolutionary Algorithms (EAs) are a non-deterministic algorithm to solve optimization problems for optimal solutions.
@@ -68,5 +68,6 @@ Pooling layer| Input layer, convolutional layer, or pooling layer| Convolutional
 Fully connected layer| Input layer, convolutional layer, pooling layer, or fully connected layer| Fully connected layer or output layers
 
 
-## Operators: crossover and computation
+## Operators: Crossover and Mutation
+
 
