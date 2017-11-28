@@ -126,6 +126,14 @@ class Gene:
 		return "Abstract Gene"
 
 
+	def equals(self, other):
+		"""
+		Is this gene the same as another gene?
+		"""
+
+		return False
+
+
 class InputGene(Gene):
 	"""
 	"""
@@ -189,6 +197,18 @@ class InputGene(Gene):
 			self.tensor = tf.placeholder(tf.float32, (None,) + self.dimension)
 
 		return self.tensor
+
+
+	def equals(self, other):
+		"""
+		The input gene is the same if the other is an INPUT gene type, and
+		the dimensionality is the same
+		"""
+
+		if other != INPUT:
+			return False
+
+		return self.dimension == other.dimension
 
 
 	def __str__(self):

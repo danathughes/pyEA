@@ -41,4 +41,3 @@ class Visualizer:
 		self.plt_data.set_ydata(y)
 
 		self.fig.canvas.draw()
-

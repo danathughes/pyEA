@@ -128,8 +128,17 @@ class NSGA_II:
 		self.selection = tournamentSelection
 
 		# Possible callback function(s)
+		self.callbacks = []
 		self.step_callback = kwargs.get('step_callback', None)
 		self.sort_callback = kwargs.get('sort_callback', None)
+
+
+	def add_callback(self, callback, trigger):
+		"""
+		Add a callback function
+		"""
+
+		self.callbacks.append(callback)
 
 
 	def generate_children(self):
