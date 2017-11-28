@@ -389,9 +389,9 @@ class Conv1DGene(Gene):
 		if other.type != CONV1D:
 			return False
 
-		return ((self.kernel_shape == other.kernel_shape) &&
-	 			(self.stride == other.stride) &&
-				(self.num_kernels == other.num_kernels) &&
+		return ((self.kernel_shape == other.kernel_shape) and
+	 			(self.stride == other.stride) and
+				(self.num_kernels == other.num_kernels) and
 				(self.activation == other.activation))
 
 	def canFollow(self, prevGene):
@@ -600,9 +600,9 @@ class Conv2DGene(Gene):
 		if other.type != CONV2D:
 			return False
 
-		return ( (self.kernel_shape == other.kernel_shape) &&
-	 			(self.stride == other.stride) &&
-				(self.num_kernels == other.num_kernels) &&
+		return ( (self.kernel_shape == other.kernel_shape) and
+	 			(self.stride == other.stride) and
+				(self.num_kernels == other.num_kernels) and
 				(self.activation == other.activation) )
 
 	def canFollow(self, prevGene):
@@ -839,7 +839,7 @@ class Pool1DGene(Gene):
 		if other.type != POOL1D:
 			return False
 
-		return ( self.pool_shape == other.pool_shape &&
+		return ( self.pool_shape == other.pool_shape and
 	 			(self.stride == other.stride) )
 
 	def canFollow(self, prevGene):
@@ -1021,7 +1021,7 @@ class Pool2DGene(Gene):
 		if other.type != POOL2D:
 			return False
 
-		return ( self.pool_shape == other.pool_shape &&
+		return ( self.pool_shape == other.pool_shape and
 	 			(self.stride == other.stride) )
 
 	def canFollow(self, prevGene):
@@ -1222,7 +1222,7 @@ class FullyConnectedGene(Gene):
 		if other.type != FULLY_CONNECTED:
 			return False
 
-		return ( self.size == other.size &&
+		return ( self.size == other.size and
 	 			(self.activation == other.activation) )
 
 

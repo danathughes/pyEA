@@ -15,7 +15,7 @@ from SingleNetworkEvaluator import *
 
 #TENSORFLOW_EVALUATOR = ProxyEvaluator()
 TENSORFLOW_EVALUATOR = SingleNetworkEvaluator('mnist.pkl')
-CHECKPONT = Checkpoint(directory)
+# CHECKPONT = Checkpoint(directory)
 
 config = config_loader.load('NSGA_II.cfg')
 INPUT_SHAPE = config['input_shape']
@@ -42,7 +42,7 @@ if __name__ == '__main__':
 
 	ga = NSGA_II(config['population_size'], CNN_Individual)
 
-	vis = Visualizer()
+	# vis = Visualizer()
 
 	# Evaluate the initial population
 	for individual in ga.population:
