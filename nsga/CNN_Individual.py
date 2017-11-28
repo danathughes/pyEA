@@ -54,7 +54,7 @@ class CNN_Individual(AbstractIndividual):
 
 		if len(self.gene.genotype) == len(other.gene.genotype):
 			for i in range(len(self.gene.genotype)):
-				if str(self.gene.genotype[i]) != str(other.gene.genotype[i]):
+				if ! self.gene.genotype[i].equals(other.gene.genotype[i]):
 					return False
 			return True
 		else:

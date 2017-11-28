@@ -102,6 +102,12 @@ class Gene:
 
 		pass
 
+	def equals(self, other):
+		"""
+		If two genes have the same type and data
+		"""
+
+		pass
 
 	def mutate(self):
 		"""
@@ -159,6 +165,16 @@ class InputGene(Gene):
 
 		return InputGene(self.dimension)
 
+	def equals(self, other):
+		"""
+		The input gene is the same if the other is an INPUT gene type, and
+		the dimensionality is the same
+		"""
+
+		if other.type != INPUT:
+			return False
+
+		return self.dimension == other.dimension
 
 	def canFollow(self, prevGene=None):
 		"""
@@ -199,18 +215,6 @@ class InputGene(Gene):
 		return self.tensor
 
 
-	def equals(self, other):
-		"""
-		The input gene is the same if the other is an INPUT gene type, and
-		the dimensionality is the same
-		"""
-
-		if other != INPUT:
-			return False
-
-		return self.dimension == other.dimension
-
-
 	def __str__(self):
 		"""
 		"""
@@ -239,6 +243,16 @@ class OutputGene(Gene):
 
 		return OutputGene(self.dimension)
 
+	def equals(self, other):
+		"""
+		The output gene is the same if the other is an OUTPUT gene type, and
+		the dimensionality is the same
+		"""
+
+		if other.type != OUTPUT:
+			return False
+
+		return self.dimension == other.dimension
 
 	def canFollow(self, prevGene):
 		"""
@@ -312,6 +326,12 @@ class DummyGene(Gene):
 
 		return dummy
 
+	def equals(self, other):
+		"""
+		"""
+
+		return False
+
 	def canFollow(self, prevGene):
 		pass
 
@@ -361,6 +381,18 @@ class Conv1DGene(Gene):
 
 		return Conv1DGene(self.kernel_shape, self.stride, self.num_kernels, self.activation)
 
+	def equals(self, other):
+		"""
+		Type and meta-parameters should all match
+		"""
+
+		if other.type != CONV1D:
+			return False
+
+		return ((self.kernel_shape == other.kernel_shape) &&
+	 			(self.stride == other.stride) &&
+				(self.num_kernels == other.num_kernels) &&
+				(self.activation == other.activation))
 
 	def canFollow(self, prevGene):
 		"""
@@ -560,6 +592,18 @@ class Conv2DGene(Gene):
 
 		return Conv2DGene(self.kernel_shape, self.stride, self.num_kernels, self.activation)
 
+	def equals(self, other):
+		"""
+		Type and meta-parameters should all match
+		"""
+
+		if other.type != CONV2D:
+			return False
+
+		return ( (self.kernel_shape == other.kernel_shape) &&
+	 			(self.stride == other.stride) &&
+				(self.num_kernels == other.num_kernels) &&
+				(self.activation == other.activation) )
 
 	def canFollow(self, prevGene):
 		"""
@@ -782,13 +826,21 @@ class Pool1DGene(Gene):
 		self.type = POOL1D
 		self.dimension = None
 
-
 	def clone(self):
 		"""
 		"""
 
 		return Pool1DGene(self.pool_shape, self.stride)
 
+	def equals(self, other):
+		"""
+		Type and meta-parameters should all match
+		"""
+		if other.type != POOL1D:
+			return False
+
+		return ( self.pool_shape == other.pool_shape &&
+	 			(self.stride == other.stride) )
 
 	def canFollow(self, prevGene):
 		"""
@@ -962,6 +1014,15 @@ class Pool2DGene(Gene):
 
 		return Pool2DGene(self.pool_shape, self.stride)
 
+	def equals(self, other):
+		"""
+		Type and meta-parameters should all match
+		"""
+		if other.type != POOL2D:
+			return False
+
+		return ( self.pool_shape == other.pool_shape &&
+	 			(self.stride == other.stride) )
 
 	def canFollow(self, prevGene):
 		"""
@@ -1153,6 +1214,17 @@ class FullyConnectedGene(Gene):
 		"""
 
 		return FullyConnectedGene(self.size, self.activation)
+
+	def equals(self, other):
+		"""
+		Type and meta-parameters should all match
+		"""
+		if other.type != FULLY_CONNECTED:
+			return False
+
+		return ( self.size == other.size &&
+	 			(self.activation == other.activation) )
+
 
 	def canFollow(self, prevGene):
 		"""
