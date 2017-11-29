@@ -460,6 +460,7 @@ class Conv1DGene(Gene):
 
 		return min_dimension
 
+
 	def mutate(self):
 		"""
 		kernel_shape, stride and num_kernels should be mutated based on the constraints from

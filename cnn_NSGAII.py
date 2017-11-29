@@ -11,10 +11,12 @@ from nsga.utils.visualizer import *
 from nsga.utils import config_loader
 
 #from ProxyEvaluator import *
-from SingleNetworkEvaluator import *
+#from SingleNetworkEvaluator import *
+from DummyEvaluator import *
 
 #TENSORFLOW_EVALUATOR = ProxyEvaluator()
-TENSORFLOW_EVALUATOR = SingleNetworkEvaluator('mnist.pkl')
+#TENSORFLOW_EVALUATOR = SingleNetworkEvaluator('mnist.pkl')
+TENSORFLOW_EVALUATOR = DummyEvaluator('mnist.pkl')
 
 config = config_loader.load('NSGA_II.cfg')
 INPUT_SHAPE = config['input_shape']
@@ -41,7 +43,7 @@ if __name__ == '__main__':
 
 	ga = NSGA_II(config['population_size'], CNN_Individual)
 
-#	vis = Visualizer()
+	vis = Visualizer([0,1], [0,100000,0,100000])
 
 	# Evaluate the initial population
 	for individual in ga.population:
@@ -49,7 +51,7 @@ if __name__ == '__main__':
 
 	TENSORFLOW_EVALUATOR.evaluate()
 
-#	vis.plot(ga.population)
+	vis.plot(ga.population)
 
 	print "==="
 	print "Current Population Objectives:"
@@ -59,7 +61,7 @@ if __name__ == '__main__':
 
 	for i in range(250):
 		ga.step()
-#		vis.plot(ga.population)
+		vis.plot(ga.population)
 		print "==="
 		print "Current Population Objectives:"
 		for p in ga.population:
