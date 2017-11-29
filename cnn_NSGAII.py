@@ -16,7 +16,6 @@ from SingleNetworkEvaluator import *
 #TENSORFLOW_EVALUATOR = ProxyEvaluator()
 TENSORFLOW_EVALUATOR = SingleNetworkEvaluator('mnist.pkl')
 
-
 config = config_loader.load('NSGA_II.cfg')
 INPUT_SHAPE = config['input_shape']
 OUTPUT_SIZE = config['output_size']
