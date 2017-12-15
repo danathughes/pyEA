@@ -50,6 +50,9 @@ MUTATE_REMOVE_PROB = 0.5
 MUTATE_MODIFY_PROB = 0.8
 
 
+
+
+
 class Gene:
 	"""
 	An abstract gene.
@@ -356,7 +359,7 @@ class DummyGene(Gene):
 class Conv1DGene(Gene):
 	"""
 	"""
-	def __init__(self, kernel_shape, stride, num_kernels, activation_function):
+	def __init__(self, kernel_shape, stride, num_kernels, activation_function, **kwargs):
 		"""
 		kernel_shape - should be a 1-tuple, e.g, (20,)
 		stride	   - should be a 1-tuple, e.g, (2,)
@@ -374,12 +377,28 @@ class Conv1DGene(Gene):
 
 		self.type = CONV1D
 
+		# What should the mutation parameters be (lambda, n_min)?
+
+		# Add 2 to the shape on average (n_min=1, lambda=1)
+		lambda_shape = kwargs.get('lambda_size', 1)
+		n_min_shape = kwargs.get('n_min_shape', 1)
+
+		# Add 1 to the stride on average (n_min=1, lambda=0)
+		lambda_stride = kwargs.get('lambda_stride', 0)
+		n_min_stride = kwargs.get('n_min_stride', 1)
+
+		self.shape_prob_params = (lambda_shape, n_min_shape)
+		self.stride_prob_params = (lambda_stride, n_min_stride)
+
 
 	def clone(self):
 		"""
 		"""
 
-		return Conv1DGene(self.kernel_shape, self.stride, self.num_kernels, self.activation)
+		return Conv1DGene(self.kernel_shape, self.stride, self.num_kernels, self.activation, 
+			              lambda_shape=self.shape_prob_params[0], n_min_shape=self.shape_prob_params[1],
+			              lambda_stride=self.stride_prob_params[0], n_min_stride=self.shape_prob_params[1])
+
 
 	def equals(self, other):
 		"""
