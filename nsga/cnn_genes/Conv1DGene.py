@@ -29,7 +29,6 @@ class Conv1DGene(AbstractGene):
 		kernel_shape - should be a 1-tuple, e.g, (20,)
 		stride	   - should be a 1-tuple, e.g, (2,)
 		num_kernels  - should be an integer
-		activation_function - a Tensorflow activation tensor (e.g., tf.sigmoid)
 		"""
 
 		AbstractGene.__init__(self)
@@ -41,11 +40,12 @@ class Conv1DGene(AbstractGene):
 		self.activation = kwargs.get('activation', tf.nn.relu)
 
 		self.type = CONV1D
+		self.dimension = None
 
 		# What should the mutation parameters be (lambda, n_min)?
 
 		# Add 2 to the shape on average (n_min=1, lambda=1)
-		lambda_shape = kwargs.get('lambda_size', 1)
+		lambda_shape = kwargs.get('lambda_shape', 1)
 		n_min_shape = kwargs.get('n_min_shape', 1)
 
 		# Add 1 to the stride on average (n_min=1, lambda=0)
@@ -67,7 +67,7 @@ class Conv1DGene(AbstractGene):
 
 		return Conv1DGene(self.kernel_shape, self.stride, self.num_kernels, activation=self.activation, 
 			              lambda_shape=self.shape_prob_params[0], n_min_shape=self.shape_prob_params[1],
-			              lambda_stride=self.stride_prob_params[0], n_min_stride=self.shape_prob_params[1],
+			              lambda_stride=self.stride_prob_params[0], n_min_stride=self.stride_prob_params[1],
 			              lambda_kernels=self.kernel_prob_params[0], n_min_kernels=self.kernel_prob_params[1])
 
 
@@ -76,7 +76,7 @@ class Conv1DGene(AbstractGene):
 		Type and meta-parameters should all match
 		"""
 
-		isSame = other.type == CONV1D
+		isSame = other.type == self.type
 
 		# Check if the other parameters are also the same, if the type is the same
 		if isSame:
@@ -172,14 +172,18 @@ class Conv1DGene(AbstractGene):
 
 	def _mutateKernelShape(self):
 		"""
-		Change the number of kernels
+		Change the shape of kernels
 		"""
 
 		# How much should the kernel shape change?
 		width_diff = self.__modifiedPoisson(self.shape_prob_params)
 
 		# What's the largest the kernel can be?
-		min_output_size = self.next_gene.minInputDimension()[0]
+		if len(self.next_gene.minInputDimension()) == 1:			# Not a pool or convolution layer 
+			min_output_size = 1
+		else:
+			min_output_size = self.next_gene.minInputDimension()[0]
+
 		input_size = self.prev_gene.outputDimension()[0]
 
 		# The kernel width cannot be so large as to be smaller than the minimum output size
@@ -224,7 +228,11 @@ class Conv1DGene(AbstractGene):
 		stride_diff = self.__modifiedPoisson(self.stride_prob_params)
 
 		# What's the largest the stride can be
-		min_output_size = self.next_gene.minInputDimension()[0]
+		if len(self.next_gene.minInputDimension()) == 1:			# Not a pool or convolution layer 
+			min_output_size = 1
+		else:
+			min_output_size = self.next_gene.minInputDimension()[0]
+			
 		input_size = self.prev_gene.outputDimension()[0]
 
 		# The stride can be at most the kernel shape

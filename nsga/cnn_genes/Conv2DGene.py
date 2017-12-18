@@ -17,16 +17,18 @@ INPUT - [ m * n * k] - This is the case for a 2D gene (i.e., image)
 
 from AbstractGene import *
 
+import numpy as np
+import tensorflow as tf
+
 
 class Conv2DGene(AbstractGene):
 	"""
 	"""
-	def __init__(self, kernel_shape, stride, num_kernels, activation_function):
+	def __init__(self, kernel_shape, stride, num_kernels, **kwargs):
 		"""
 		kernel_shape - should be a 2-tuple, e.g, (20,20)
 		stride	   - should be a 2-tuple, e.g, (2,2)
 		num_kernels  - should be an integer
-		activation_function - a Tensorflow activation tensor (e.g., tf.sigmoid)
 		"""
 
 		AbstractGene.__init__(self)
@@ -34,34 +36,57 @@ class Conv2DGene(AbstractGene):
 		self.kernel_shape = kernel_shape
 		self.stride = stride
 		self.num_kernels = num_kernels
-		self.activation = activation_function
+		self.activation = kwargs.get('activation', tf.nn.relu)
 
 		self.type = CONV2D
 		self.dimension = None
+
+		# Mutation parameters - shape, stride and number of kernels
+		# NOTE:  Do we want 
+		lambda_shape = kwargs.get('labmda_shape', 1)
+		n_min_shape = kwargs.get('n_min_shape', 1)
+
+		lambda_stride = kwargs.get('lambda_stride', 0)
+		n_min_stride = kwargs.get('n_min_stride', 1)
+
+		lambda_kernels = kwargs.get('lambda_kernels', 4)
+		n_min_kernels = kwargs.get('n_min_kernels', 1)
+
+		self.shape_prob_params = (lambda_shape, n_min_shape)
+		self.stride_prob_params = (lambda_stride, n_min_stride)
+		self.kernel_prob_params = (lambda_kernels, n_min_kernels)
 
 
 	def clone(self):
 		"""
 		"""
 
-		return Conv2DGene(self.kernel_shape, self.stride, self.num_kernels, self.activation)
+		return Conv2DGene(self.kernel_shape, self.stride, self.num_kernels, activation=self.activation,
+						  lambda_shape=self.shape_prob_params[0], n_min_shape=self.shape_prob_params[1],
+						  lambda_stride=self.stride_prob_params[0], n_min_stride=self.stride_prob_params[1],
+						  lambda_kernels=self.kernel_prob_params[0], n_min_kernels=self.kernel_prob_params[1])
+
 
 	def equals(self, other):
 		"""
 		Type and meta-parameters should all match
 		"""
 
-		if other.type != CONV2D:
-			return False
+		isSame = other.type == CONV2D
 
-		return ( (self.kernel_shape == other.kernel_shape) and
-	 			(self.stride == other.stride) and
-				(self.num_kernels == other.num_kernels) and
-				(self.activation == other.activation) )
+		# Check if the other parameters are also the same, if the type is the same
+		if isSame:
+			isSame = isSame and self.kernel_shape == other.kernel_shape
+			isSame = isSame and self.stride == other.stride
+			isSame = isSame and self.num_kernels == other.num_kernels
+			isSame = isSame and self.activation == other.activation
+
+		return isSame
+
 
 	def canFollow(self, prevGene):
 		"""
-		A Conv1Dgene can follow an 'InputGene' or an 'Pool1DGene'
+		A Conv2Dgene can follow an 'InputGene' or an 'Pool12Gene'
 		The constraints are kernel_size should not larger than prevGene.output_size
 		"""
 
@@ -108,12 +133,14 @@ class Conv2DGene(AbstractGene):
 		self.dimension = (myHeight, myWidth, self.num_kernels)
 		return self.dimension
 
+
 	def minInputDimension(self):
 		"""
 		Recurse through next gene to figure out minimum valid input size
 		"""
 
 		next_min_dimension = self.next_gene.minInputDimension()
+
 		if len(next_min_dimension) == 1:
 			# Next gene is Fully Connected or Output
 			# next_min_dimension = (1,)
@@ -127,107 +154,175 @@ class Conv2DGene(AbstractGene):
 
 		return min_dimension
 
+
 	def mutate(self):
 		"""
-		kernel_shape, stride and num_kernels should be mutated based on the constraints from
-		self.prev_gene and self.next_gene which are two members of the genotype.
-
-		constraints:
-			kernel_shape = (20,)
-			stride = (2,)
-			num_kernels = 8
+		Modify one of the parameters to make a new gene
 		"""
 
-		# keep the original values
-		size = self.kernel_shape
-		stride = self.stride
-		num_kernels = self.num_kernels
+		# Pick a random mutation to perform
+		mutation = np.random.choice([self._mutateKernelShape, self._mutateStride, self._mutateNumKernels, self._mutateActivation])
 
-		t_size = list(size)
-		t_stride = list(stride)
-		t_num_kernels = num_kernels
+		return mutation()
 
-		#
-		size_pre_out = self.prev_gene.outputDimension()[0:2]
 
-		next_gene_minIn = self.next_gene.minInputDimension()
-		if len(next_gene_minIn) == 1:
-			# next_gene is a FC or Output
-			size_next_in = (1, 1)
+	def _mutateKernelShape(self):
+		"""
+		Change the shape of the kernel on one of the dimensions
+		"""
+
+		# Pick one of the dimensions at random
+		_dim = np.random.choice([0,1])
+
+		# How much should the kernel shape change?
+		size_diff = self.__modifiedPoisson(self.shape_prob_params)
+
+		# What's the largest the kernel can be?
+		if len(self.next_gene.minInputDimension()) == 1:			# Not a pool or convolution layer 
+			min_output_size = 1
 		else:
-			size_next_in = next_gene_minIn[0:2]
+			min_output_size = self.next_gene.minInputDimension()[_dim]
 
-		# Mutate the kernel
-		min_kernel_size = [MIN_CNN_WIDTH, MIN_CNN_WIDTH]
-		max_kernel_size = [size_pre_out[0]-(size_next_in[0]-1)*stride[0],
-					 size_pre_out[1]-(size_next_in[1]-1)*stride[1]]
+		input_size = self.prev_gene.outputDimension()[_dim]
 
-		min_stride_size = [MIN_CNN_STRIDE, MIN_CNN_STRIDE]
-		max_stride_size = [MIN_CNN_STRIDE, MIN_CNN_STRIDE]
-		for i in [0, 1]:
-			if size_next_in[i] > 1:
-				temp = int((size_pre_out[i]-size[i])/(size_next_in[i]-1))
-				max_stride_size[i] = temp if temp<size[i] else size[i]
-			else:
-				max_stride_size[i] = size[i]
+		# The kernel size cannot be so large as to be smaller than the minimum output size
+		# Also, this covers the kernel not exceeding the input size:
+		# given min_output_size=1, max_kernel_width = input_size
+		max_kernel_size = np.floor( input_size - self.stride[_dim] * (min_output_size - 1) )
 
-		# What to mutate
-		mutation = random.choice(['kernel_size', 'stride_size', 'num_kernels'])
+		# The kernel cannot be less than the stride (otherwise, the stride skips some data)
+		min_kernel_size = self.stride[_dim]
 
-		"""
-		1. Make a list of possible values for a variable, list_values
-		2. Sample values on a distribution and make a list by normalizing them, list_probs
-		3. t_value = random.choice(list_values, list_probs)
-		"""
-		if mutation == 'kernel_size':
-			for i in [0, 1]:
-				size_list = list(range(min_kernel_size[i], max_kernel_size[i]+1))
-				if size[i] in size_list:
-					size_list.remove(size[i])
-				if len(size_list) > 0:
-					t_size[i] = random.choice(size_list)
-				else:
-					mutation = 'stride_size'
-					break
-		elif mutation == 'stride_size':
-			for i in [0, 1]:
-				stride_list = list(range(min_stride_size[i], max_stride_size[i]+1))
-				if stride[i] in stride_list:
-					stride_list.remove(stride[i])
-				if len(stride_list) > 0:
-					t_stride[i] = random.choice(stride_list)
-				else:
-					mutation = 'num_kernels'
-					break
-		else: # mutation == 'num_kernels'
-			factor = 0.5
-			min_size = int(num_kernels*(1-factor))
-			min_size = 1 if min_size<1 else min_size
-			max_size = int(num_kernels*(1+factor))
+		# Add or subtract the current (old) kernel width
+		old_kernel_size = self.kernel_shape[_dim]
 
-			size_list = list(range(min_size, max_size+1))
-			if num_kernels in size_list:
-				size_list.remove(num_kernels)
-
-			if len(size_list)>4:
-				t_num_kernels = random.choice(size_list)
-			else:
-				t_num_kernels = np.random.randint(MIN_CNN_KERNELS, MAX_CNN_KERNELS+1)
-
-		if mutation == 'kernel_size':
-			self.kernel_shape = tuple(t_size)
-		elif mutation == 'stride_size':
-			self.stride = tuple(t_stride)
-		elif mutation == 'num_kernels':
-			self.num_kernels = t_num_kernels
-		# after some change, check validity of the new gene
-		if self.canFollow(self.prev_gene):
-			return True
+		# If the kernel size is one, we have to add
+		if old_kernel_size == min_kernel_size:
+			new_kernel_size = old_kernel_size + size_diff
+		# If the kernel size is the max size, then we must subtract
+		elif old_kernel_size == max_kernel_size:
+			new_kernel_size = old_kernel_size - size_diff
+		# Otherwise, randomly add or subtract
+		elif np.random.random() < 0.5:
+			new_kernel_size = old_kernel_size + size_diff
 		else:
-			self.kernel_shape = size
-			self.stride = stride
-			self.num_kernels = num_kernels
-			return False
+			new_kernel_size = old_kernel_size - size_diff
+
+
+		# Don't exceed the two limits
+		new_kernel_size = min(new_kernel_size, max_kernel_size)
+		new_kernel_size = max(new_kernel_size, min_kernel_size)
+
+		self.kernel_shape = list(self.kernel_shape)
+		self.kernel_shape[_dim] = int(new_kernel_size)
+		self.kernel_shape = tuple(self.kernel_shape)
+
+		# Did it mutate? Only if the new size is different than the old size
+		return new_kernel_size != old_kernel_size
+
+
+	def _mutateStride(self):
+		"""
+		Change the stride size
+		"""
+
+		# Pick a random dimension
+		_dim = np.random.choice([0,1])
+
+		# How much should the stride be changed?
+		stride_diff = self.__modifiedPoisson(self.stride_prob_params)
+
+		# What's the largest the stride can be?
+		if len(self.next_gene.minInputDimension()) == 1:			# Not a pool or convolution layer 
+			min_output_size = 1
+		else:
+			min_output_size = self.next_gene.minInputDimension()[_dim]
+
+		input_size = self.prev_gene.outputDimension()[_dim]
+
+		# The stride can be at most the kernel dimension
+		max_stride = self.kernel_shape[_dim]
+
+		# If the minimum output size is greater than 1, then there is an additional constraint on the stride
+		if min_output_size > 1:
+			max_stride = np.floor((input_size - self.kernel_shape[_dim]) / (min_output_size - 1))
+
+		# The stride cannot be larger than the kernel size
+		max_stride = min(max_stride, self.kernel_shape[_dim])
+
+		# Add or subtract the stride?
+		old_stride = self.stride[_dim]
+
+		# If the stride is one, we have to add
+		if old_stride == 1:
+			new_stride = old_stride + stride_diff
+		# If the stride is the max stride, then we must subtract
+		elif old_stride == max_stride:
+			new_stride = old_stride - stride_diff
+		# Otherwise, randomly add or subtract
+		elif np.random.random() < 0.5:
+			new_stride = old_stride + stride_diff
+		else:
+			new_stride = old_stride - stride_diff
+
+		# Don't exceed the limits
+		new_stride = min(new_stride, max_stride)
+		new_stride = max(new_stride, 1)
+
+		self.stride = list(self.stride)
+		self.stride[_dim] = new_stride
+		self.stride = tuple(self.stride)
+
+		# Did it mutate?
+		return new_stride != old_stride
+
+
+	def _mutateNumKernels(self):
+		"""
+		Change the number of kernels
+		"""
+
+		# How many kernels to add / subtract?
+		kernel_diff = self.__modifiedPoisson(self.kernel_prob_params)
+
+		# Should this be added to or subtracted from the current number of kernels?
+		if self.num_kernels == 1 or np.random.random() < 0.5:
+			# Add
+			self.num_kernels += kernel_diff
+		else:
+			# Subtract
+			self.num_kernels -= kernel_diff
+			self.num_kernels = max(self.num_kernels, 1)		# Don't go below 1 kernel!
+
+		self.num_kernels = int(self.num_kernels, 1)
+
+		# Regardless, it definitely mutated
+		return True
+
+
+	def _mutateActivation(self):
+		"""
+		Change the activation function
+		"""
+
+		new_activation = np.random.choice(ACTIVATION_FUNCTIONS)
+
+		# Keep picking activation suntil something different occurs
+		while self.activation == new_activation:
+			new_activation = np.random.choice(ACTIVATION_FUNCTIONS)
+
+		self.activation = new_activation
+
+		# The previous while loop ensures mutation
+		return True
+
+
+	def __modifiedPoisson(self, prob_params):
+		"""
+		Sample from the modified Poisson distribution
+		"""
+
+		return np.random.poisson(prob_params[0]) + prob_params[1]
 
 
 	def generateLayer(self, input_tensor):
@@ -244,7 +339,7 @@ class Conv2DGene(AbstractGene):
 		bias = tf.Variable(tf.constant(0.0, shape=(self.num_kernels,)))
 
 		try:
-			self.tensor = tf.nn.relu(tf.nn.conv2d(input_tensor, weights, (1,) + self.stride + (1,), 'VALID') + bias)
+			self.tensor = tf.activation(tf.nn.conv2d(input_tensor, weights, (1,) + self.stride + (1,), 'VALID') + bias)
 		except:
 			print "Error!"
 			print "Input Shape:", input_tensor.get_shape()

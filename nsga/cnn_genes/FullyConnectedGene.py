@@ -21,7 +21,7 @@ from AbstractGene import *
 class FullyConnectedGene(AbstractGene):
 	"""
 	"""
-	def __init__(self, size, activation_function):
+	def __init__(self, size, **kwargs):
 		"""
 		size				- number of neurons (integer)
 		activation_function - e.g., tf.sigmoid
@@ -29,28 +29,45 @@ class FullyConnectedGene(AbstractGene):
 
 		AbstractGene.__init__(self)
 
+
 		self.size = size
-		self.activation = activation_function
+		self.activation = kwargs.get('activation', tf.nn.relu)
 
 		self.type = FULLY_CONNECTED
 		self.dimension = size
+
+		# Make sure that the diemsnionality is expressed as a tuple
+		if type(size) == int or type(size) == float:
+			self.dimension = (size,)
+
+		# Mutation parameters - on average, add or subtract 10 units
+		lambda_size = kwargs.get('lambda_size', 5)
+		n_min_size = kwargs.get('n_min_size', 5)
+
+		self.size_prob_params = (lambda_size, n_min_size)
 
 
 	def clone(self):
 		"""
 		"""
 
-		return FullyConnectedGene(self.size, self.activation)
+		return FullyConnectedGene(self.size, activation=self.activation,
+			                      lambda_size=self.size_prob_params[0], n_min_size=self.size_prob_params[1])
+
 
 	def equals(self, other):
 		"""
 		Type and meta-parameters should all match
 		"""
-		if other.type != FULLY_CONNECTED:
-			return False
 
-		return ( self.size == other.size and
-	 			(self.activation == other.activation) )
+		isSame = other.type == self.type
+
+		# If this is a fully connected unit, 
+		if isSame:
+			isSame = isSame and self.size == other.size
+			isSame = isSame and self.activation == other.activation
+
+		return isSame
 
 
 	def canFollow(self, prevGene):
@@ -63,10 +80,11 @@ class FullyConnectedGene(AbstractGene):
 
 	def outputDimension(self):
 		"""
-		Calculate the output dimension based on the input dimension, kernel_size, and stride
+		The output dimensions is just the number of units
 		"""
 
 		return self.dimension
+
 
 	def minInputDimension(self):
 		"""
@@ -75,26 +93,65 @@ class FullyConnectedGene(AbstractGene):
 
 		return (1,)
 
+
 	def mutate(self):
 		"""
-		size should be mutated based on the constraints from prevGene and nextGene
+		Modify either the size or the activation function
 		"""
-		factor = 0.5
-		min_size = int(self.size*(1-factor))
-		min_size = 1 if min_size<1 else min_size
-		max_size = int(self.size*(1+factor))
 
-		size_list = list(range(min_size, max_size+1))
-		if self.size in size_list:
-			size_list.remove(self.size)
+		# Pich a random mutation to perform
+		mutation = np.random.choice([self._mutateSize, self._mutateActivation])
 
-		if len(size_list)>0:
-			self.size = random.choice(size_list)
-			self.dimension = self.size
-			return True
+		return mutation()
+
+
+	def _mutateSize(self):
+		"""
+		Change the number of units
+		"""
+
+		# How much should the size change?
+		size_diff = self.__modifiedPoisson(self.size_prob_params)
+
+		old_size = self.dimension[0]
+
+		# Should the size or increase or decrease
+		if old_size == 1 or np.random.random() < 0.5:
+			new_size = old_size + size_diff
 		else:
-			self.size = np.random.randint(MIN_FULL_CONNECTION, MAX_FULL_CONNECTION+1)
-			self.dimension = self.size
+			new_size = old_size - size_diff
+
+		new_size = max(new_size, 1)
+
+		self.dimension = (new_size,)
+
+		# Did this mutate?
+		return new_size != old_size
+
+
+	def _mutateActivation(self):
+		"""
+		Change the activation function
+		"""
+
+		new_activation = np.random.choice(ACTIVATION_FUNCTION)
+
+		# Keep picking activations until something different occurs
+		while self.activation == new_activation:
+			new_activation = np.random.choice(ACTIVATION_FUNCTIONS)
+
+		self.activation = new_activation
+
+		# The previous while loop ensures mutation
+		return True
+
+
+	def __modifiedPoisson(self, prob_params):
+		"""
+		Sample from the modified Poisson distribution
+		"""
+
+		return np.random.poisson(prob_params[0]) + prob_params[1]		
 
 
 	def generateLayer(self, input_tensor):

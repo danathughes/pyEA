@@ -30,11 +30,13 @@ class DummyGene(AbstractGene):
 		self.shape = shape
 		self.type = INPUT
 
+
 	def clone(self):
 		dummy =  DummyGene(self.shape)
 		dummy.type = self.type
 
 		return dummy
+
 
 	def equals(self, other):
 		"""
@@ -42,19 +44,26 @@ class DummyGene(AbstractGene):
 
 		return False
 
+
 	def canFollow(self, prevGene):
 		pass
 
+
 	def outputDimension(self):
 		return self.shape
+
 
 	def minInputDimension(self):
 		"""
 		Recurse through next gene to figure out minimum valid input size
 		"""
+		
+		pass
+
 
 	def mutate(self):
 		pass
+
 
 	def __str__(self):
 		"""

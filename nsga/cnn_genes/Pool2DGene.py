@@ -21,7 +21,7 @@ from AbstractGene import *
 class Pool2DGene(AbstractGene):
 	"""
 	"""
-	def __init__(self, pool_shape, stride):
+	def __init__(self, pool_shape, stride, **kwargs):
 		"""
 		pool_size	- should be a 2-tuple, e.g, (2,2)
 		stride	   - should be a 2-tuple, e.g, (2,2)
@@ -35,22 +35,41 @@ class Pool2DGene(AbstractGene):
 		self.type = POOL2D
 		self.dimension = None
 
+		# Mutation parameters
+		lambda_shape = kwargs.get('lambda_shape', 0)
+		n_min_shape = kwargs.get('n_min_shape', 1)
+
+		lambda_stride = kwargs.get('lambda_stride', 0)
+		n_min_stride = kwargs.get('n_min_stride', 1)
+
+		self.shape_prob_params = (lambda_shape, n_min_shape)
+		self.stride_prob_params = (lambda_stride, n_min_stride)
+
 
 	def clone(self):
 		"""
 		"""
 
-		return Pool2DGene(self.pool_shape, self.stride)
+		return Pool2DGene(self.pool_shape, self.stride,
+						  lambda_shape=self.shape_prob_params[0], n_min_shape=self.shape_prob_params[1],
+						  lambda_stride=self.stride_prob_params[0], n_min_stride=self.shape_prob_params[1])
+
 
 	def equals(self, other):
 		"""
 		Type and meta-parameters should all match
 		"""
-		if other.type != POOL2D:
-			return False
 
-		return ( self.pool_shape == other.pool_shape and
-	 			(self.stride == other.stride) )
+		# Are they the same type?
+		isSame = other.type == self.type
+
+		# Check if the other parameters are also the same
+		if isSame:
+			isSame = isSame and self.pool_shape == other.pool_shape
+			isSame = isSame and self.stride == other.stride
+
+		return isSame
+
 
 	def canFollow(self, prevGene):
 		"""
@@ -101,6 +120,7 @@ class Pool2DGene(AbstractGene):
 		self.dimension = (myHeight, myWidth, channels)
 		return self.dimension
 
+
 	def minInputDimension(self):
 		"""
 		Recurse through next gene to figure out minimum valid input size
@@ -120,86 +140,134 @@ class Pool2DGene(AbstractGene):
 
 		return min_dimension
 
+
 	def mutate(self):
 		"""
-		kernel_shape, stride and num_kernels should be mutated based on the constraints from
-		self.prev_gene and self.next_gene which are two members of the genotype.
-
-		constraints:
-			kernel_shape = (20,)
-			stride = (2,)
-			num_kernels = 8
+		Modify one of the parameters to make a new gene
 		"""
 
-		# keep the original values
-		size = self.pool_shape
-		stride = self.stride
+		# Pick a random mutation to perform
+		mutation = np.random.choice([self._mutatePoolShape, self._mutateStride])
 
-		t_size = list(size)
-		t_stride = list(stride)
+		return mutation()
 
-		#
-		size_pre_out = self.prev_gene.outputDimension()[0:2]
 
-		next_gene_minIn = self.next_gene.minInputDimension()
-		if len(next_gene_minIn) == 1:
-			# next_gene is a FC or Output
-			size_next_in = (1, 1)
+	def _mutatePoolShape(self):
+		"""
+		Change the size of the pool
+		"""
+
+		# Pick a random pool dimension to mutate
+		_dim = np.random.choice([0,1])
+
+		# How much should the shape change?
+		shape_diff = self.__modifiedPoisson(self.shape_prob_params)
+
+		# What's the largest the pooling size can be?
+		if len(self.next_gene.minInputDimension()) == 1:			# Not a pool or convolution layer 
+			min_output_size = 1
 		else:
-			size_next_in = next_gene_minIn[0:2]
+			min_output_size = self.next_gene.minInputDimension()[_dim]
 
-		# Mutate the kernel
-		min_pool_size = [MIN_POOL_SIZE, MIN_POOL_SIZE]
-		max_pool_size = [size_pre_out[0]-(size_next_in[0]-1)*stride[0],
-					 size_pre_out[1]-(size_next_in[1]-1)*stride[1]]
+		input_size = self.prev_gene.outputDimension()[_dim]
 
-		min_stride_size = [MIN_POOL_STRIDE, MIN_POOL_STRIDE]
-		max_stride_size = [MIN_POOL_STRIDE, MIN_POOL_STRIDE]
-		for i in [0, 1]:
-			if size_next_in[i] > 1:
-				temp = int((size_pre_out[i]-size[i])/(size_next_in[i]-1))
-				max_stride_size[i] = temp if temp<size[i] else size[i]
-			else:
-				max_stride_size[i] = size[i]
+		# The pool width cannot be so large as to be smaller than the minimum output size
+		max_pool_size = np.floor( input_size - self.stride[_dim] * (min_output_size - 1))
 
-		# What to mutate
-		mutation = random.choice(['pool_size', 'stride_size'])
-
-		"""
-		1. Make a list of possible values for a variable, list_values
-		2. Sample values on a distribution and make a list by normalizing them, list_probs
-		3. t_value = random.choice(list_values, list_probs)
-		"""
-		if mutation == 'pool_size':
-			for i in [0, 1]:
-				size_list = list(range(min_pool_size[i], max_pool_size[i]+1))
-				if size[i] in size_list:
-					size_list.remove(size[i])
-				if len(size_list) > 0:
-					t_size[i] = random.choice(size_list)
-				else:
-					mutation = 'stride_size'
-					break
-		else: # mutation == 'stride_size':
-			for i in [0, 1]:
-				stride_list = list(range(min_stride_size[i], max_stride_size[i]+1))
-				if stride[i] in stride_list:
-					stride_list.remove(stride[i])
-				if len(stride_list) > 0:
-					t_stride[i] = random.choice(stride_list)
-				else:
-					return False
-		if mutation == 'pool_size':
-			self.pool_shape = tuple(t_size)
-		elif mutation == 'stride_size':
-			self.stride = tuple(t_stride)
-		# after some change, check validity of the new gene
-		if self.canFollow(self.prev_gene):
-			return True
+		# If the other dimension is not 1, it's okay to have a pool size of 1, otherwise, it cannot be
+		# less than 2
+		if self.pool_shape[1 - _dim] > 1:
+			min_pool_size = max(self.stride[_dim], 1)
 		else:
-			self.kernel_shape = size
-			self.stride = stride
-			return False
+			min_pool_size = max(self.stride[_dim], 2)
+
+		# Add or subtract to the pool shape
+		old_pool_size = self.pool_shape[_dim]
+
+		# If the pool size is 2, we have to add
+		if old_pool_size == min_pool_size:
+			new_pool_size = old_pool_size + shape_diff
+		elif old_pool_size == max_pool_size:
+			new_pool_size = old_pool_size - shape_diff
+		elif np.random.random() < 0.5:
+			new_pool_size = old_pool_size + shape_diff
+		else:
+			new_pool_size = old_pool_size - shape_diff
+
+		# Don't exceed the two limits
+		new_pool_size = max(new_pool_size, min_pool_size)
+		new_pool_size = min(new_pool_size, max_pool_size)
+
+		self.pool_shape = list(self.pool_shape)
+		self.pool_shape[_dim] = new_pool_size
+		self.pool_shape = tuple(self.pool_shape)
+
+		# Did it mutate?
+		return new_pool_size != old_pool_size
+
+
+	def _mutateStride(self):
+		"""
+		Change the stride size
+		"""
+
+		# Pick a random pool dimension to mutate
+		_dim = np.random.choice([0,1])
+
+		# How much should the stride be changes?
+		stride_diff = self.__modifiedPoisson(self.stride_prob_params)
+
+		# What's the largest the stride can be?
+		if len(self.next_gene.minInputDimension()) == 1:			# Not a pool or convolution layer 
+			min_output_size = 1
+		else:
+			min_output_size = self.next_gene.minInputDimension()[_dim]
+
+		input_size = self.prev_gene.outputDimension()[_dim]
+
+		# The stride cannot exceed the pool shape
+		max_stride = self.pool_shape[_dim]
+
+		# If the minimum output size is greater than 1, then there is an aditional constraint on the stride
+		if min_output_size > 1:
+			max_stride = np.floor( (input_size - self.pool_shape[_dim]) / (min_output_size - 1) )
+
+		# The stride cannot be larger than the pool size
+		max_stride = min(max_stride, self.pool_shape[_dim])
+
+		# Add or subtract the stride?
+		old_stride = self.stride[_dim]
+
+		# If the stride is one, we need to add
+		if old_stride == 1:
+			new_stride = old_stride + stride_diff
+		# If the stride is the max stride, then we must subtract
+		elif old_stride == max_stride:
+			new_stride = old_stride - stride_diff
+			# Otherwise, just add or subtract at random
+		elif np.random.random() < 0.5:
+			new_stride = old_stride + stride_diff
+		else:
+			new_stride = old_stride - stride_diff
+
+		# Constrain by the limits
+		new_stride = min(new_stride, max_stride)
+		new_stride = max(new_stride, 1)
+
+		self.stride = list(self.stride)
+		self.stride[_dim] = new_stride
+		self.stride = tuple(self.stride)
+
+		# Did it mutate?
+		return new_stride != old_stride
+
+
+	def __modifiedPoisson(self, prob_params):
+		"""
+		Sample from the modified Poisson distribution
+		"""
+
+		return np.random.poisson(prob_params[0]) + prob_params[1]
 
 
 	def generateLayer(self, input_tensor):

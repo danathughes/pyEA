@@ -32,6 +32,9 @@ class OutputGene(AbstractGene):
 		self.dimension = output_size
 		self.type = OUTPUT
 
+		if type(output_size) == int:
+			self.dimension = (output_size,)
+
 
 	def clone(self):
 		"""
