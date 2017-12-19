@@ -16,7 +16,7 @@ INPUT - [ m * n * k] - This is the case for a 2D gene (i.e., image)
 """
 
 from AbstractGene import *
-
+from DummyGene import *
 
 class InputGene(AbstractGene):
 	"""

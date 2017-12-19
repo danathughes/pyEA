@@ -15,7 +15,10 @@ INPUT - [ m * n * k] - This is the case for a 2D gene (i.e., image)
 
 """
 
+import random
+
 from AbstractGene import *
+from DummyGene import *
 
 
 class FullyConnectedGene(AbstractGene):
@@ -134,11 +137,11 @@ class FullyConnectedGene(AbstractGene):
 		Change the activation function
 		"""
 
-		new_activation = np.random.choice(ACTIVATION_FUNCTION)
+		new_activation = random.choice(ACTIVATION_FUNCTIONS)
 
 		# Keep picking activations until something different occurs
 		while self.activation == new_activation:
-			new_activation = np.random.choice(ACTIVATION_FUNCTIONS)
+			new_activation = random.choice(ACTIVATION_FUNCTIONS)
 
 		self.activation = new_activation
 
@@ -168,8 +171,8 @@ class FullyConnectedGene(AbstractGene):
 			input_shape = input_tensor.get_shape().as_list()[1:]
 
 		# Create the weights and bias to the softmax layer
-		weights = tf.Variable(tf.truncated_normal((input_shape[0], self.dimension), stddev=0.05))
-		bias = tf.Variable(tf.constant(0.0, shape=(self.dimension,)))
+		weights = tf.Variable(tf.truncated_normal(tuple(input_shape) + self.dimension, stddev=0.05))
+		bias = tf.Variable(tf.constant(0.0, shape=self.dimension))
 
 		self.tensor = tf.nn.relu(tf.matmul(input_tensor, weights) + bias)
 

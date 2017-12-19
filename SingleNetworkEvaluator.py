@@ -134,7 +134,6 @@ class SingleNetworkEvaluator:
 		if not self.has_model:
 			return
 
-
 		for i in range(self.num_train_steps):
 			# Make some batches
 			x_batch, y_batch = make_batches(x, y)
@@ -142,6 +141,9 @@ class SingleNetworkEvaluator:
 			for _x, _y in zip(x_batch, y_batch):
 				fd = {self.input: _x, self.target: _y}
 				self.sess.run(self.train_step, feed_dict=fd)
+
+			print '.',
+		print
 		
 		if self.verbose:
 			loss, accuracy = self.__loss_and_accuracy(x,y)
@@ -199,7 +201,7 @@ class SingleNetworkEvaluator:
 		print "====================="
 		if self.verbose:
 			print individual
-			print str(individual.gene)
+			print "--------------------"
 
 		# Save the individual
 		filename = self.population_path + '/individual_%d.pkl' % self.individual_num

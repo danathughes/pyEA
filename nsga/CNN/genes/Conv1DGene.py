@@ -15,7 +15,10 @@ INPUT - [ m * n * k] - This is the case for a 2D gene (i.e., image)
 
 """
 
+import random
+
 from AbstractGene import *
+from DummyGene import *
 
 import tensorflow as tf
 import numpy as np
@@ -165,7 +168,7 @@ class Conv1DGene(AbstractGene):
 		"""
 
 		# Pick a random mutation to perform
-		mutation = np.random.choice([self._mutateKernelShape, self._mutateStride, self._mutateNumKernels, self._mutateActivation])
+		mutation = random.choice([self._mutateKernelShape, self._mutateStride, self._mutateNumKernels, self._mutateActivation])
 
 		return mutation()
 
@@ -298,11 +301,11 @@ class Conv1DGene(AbstractGene):
 		Change the activation function
 		"""
 
-		new_activation = np.random.choice(ACTIVATION_FUNCTIONS)
+		new_activation = random.choice(ACTIVATION_FUNCTIONS)
 
 		# Keep picking activations until something different occurs
 		while self.activation == new_activation:
-			new_activation = np.random.choice(ACTIVATION_FUNCTIONS)
+			new_activation = random.choice(ACTIVATION_FUNCTIONS)
 
 		self.activation = new_activation
 

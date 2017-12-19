@@ -15,7 +15,10 @@ INPUT - [ m * n * k] - This is the case for a 2D gene (i.e., image)
 
 """
 
+import random
+
 from AbstractGene import *
+from DummyGene import *
 
 import numpy as np
 import tensorflow as tf
@@ -92,10 +95,12 @@ class Conv2DGene(AbstractGene):
 
 		# Is the previous gene a valid type?
 		if not prevGene.type in [INPUT, CONV2D, POOL2D]:
+			print "NOT VALID GENE:", prevGene.type
 			return False
 
 		# Is the dimensionality 2? (length x channels)
 		if len(prevGene.outputDimension()) != 3:
+			print "NOT VALID DIMENSIONALITY"
 			return False
 
 		# Get the output dimension of the previous gene
@@ -103,12 +108,14 @@ class Conv2DGene(AbstractGene):
 
 		# Is the kernel larger than the previous length?
 		if self.kernel_shape[0] > prevHeight or self.kernel_shape[1] > prevWidth:
+			print "KERNEL'S TOO BIG"
 			return False
 
 		# So far, no problem with dimensionality.  Check if further down the genotype is valid
 
 		# Is there another gene down the line?
 		if not self.next_gene:
+			print "NOTHING TO FOLLOW..."
 			return False
 
 		# What would the shape of the output be?
@@ -161,7 +168,7 @@ class Conv2DGene(AbstractGene):
 		"""
 
 		# Pick a random mutation to perform
-		mutation = np.random.choice([self._mutateKernelShape, self._mutateStride, self._mutateNumKernels, self._mutateActivation])
+		mutation = random.choice([self._mutateKernelShape, self._mutateStride, self._mutateNumKernels, self._mutateActivation])
 
 		return mutation()
 
@@ -172,7 +179,7 @@ class Conv2DGene(AbstractGene):
 		"""
 
 		# Pick one of the dimensions at random
-		_dim = np.random.choice([0,1])
+		_dim = random.choice([0,1])
 
 		# How much should the kernel shape change?
 		size_diff = self.__modifiedPoisson(self.shape_prob_params)
@@ -227,7 +234,7 @@ class Conv2DGene(AbstractGene):
 		"""
 
 		# Pick a random dimension
-		_dim = np.random.choice([0,1])
+		_dim = random.choice([0,1])
 
 		# How much should the stride be changed?
 		stride_diff = self.__modifiedPoisson(self.stride_prob_params)
@@ -294,7 +301,7 @@ class Conv2DGene(AbstractGene):
 			self.num_kernels -= kernel_diff
 			self.num_kernels = max(self.num_kernels, 1)		# Don't go below 1 kernel!
 
-		self.num_kernels = int(self.num_kernels, 1)
+		self.num_kernels = int(self.num_kernels)
 
 		# Regardless, it definitely mutated
 		return True
@@ -305,11 +312,11 @@ class Conv2DGene(AbstractGene):
 		Change the activation function
 		"""
 
-		new_activation = np.random.choice(ACTIVATION_FUNCTIONS)
+		new_activation = random.choice(ACTIVATION_FUNCTIONS)
 
 		# Keep picking activation suntil something different occurs
 		while self.activation == new_activation:
-			new_activation = np.random.choice(ACTIVATION_FUNCTIONS)
+			new_activation = random.choice(ACTIVATION_FUNCTIONS)
 
 		self.activation = new_activation
 
@@ -339,7 +346,7 @@ class Conv2DGene(AbstractGene):
 		bias = tf.Variable(tf.constant(0.0, shape=(self.num_kernels,)))
 
 		try:
-			self.tensor = tf.activation(tf.nn.conv2d(input_tensor, weights, (1,) + self.stride + (1,), 'VALID') + bias)
+			self.tensor = self.activation(tf.nn.conv2d(input_tensor, weights, (1,) + self.stride + (1,), 'VALID') + bias)
 		except:
 			print "Error!"
 			print "Input Shape:", input_tensor.get_shape()

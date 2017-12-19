@@ -16,6 +16,9 @@ INPUT - [ m * n * k] - This is the case for a 2D gene (i.e., image)
 """
 
 from AbstractGene import *
+from DummyGene import *
+
+import random
 
 
 class Pool1DGene(AbstractGene):
@@ -145,7 +148,7 @@ class Pool1DGene(AbstractGene):
 		"""
 
 		# Pick a random mutation to perform
-		mutation = np.random.choice([self._mutatePoolShape, self._mutateStride])
+		mutation = random.choice([self._mutatePoolShape, self._mutateStride])
 
 		return mutation()
 

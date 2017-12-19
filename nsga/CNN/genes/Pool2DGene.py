@@ -16,7 +16,9 @@ INPUT - [ m * n * k] - This is the case for a 2D gene (i.e., image)
 """
 
 from AbstractGene import *
+from DummyGene import *
 
+import random
 
 class Pool2DGene(AbstractGene):
 	"""
@@ -147,7 +149,7 @@ class Pool2DGene(AbstractGene):
 		"""
 
 		# Pick a random mutation to perform
-		mutation = np.random.choice([self._mutatePoolShape, self._mutateStride])
+		mutation = random.choice([self._mutatePoolShape, self._mutateStride])
 
 		return mutation()
 
@@ -158,7 +160,7 @@ class Pool2DGene(AbstractGene):
 		"""
 
 		# Pick a random pool dimension to mutate
-		_dim = np.random.choice([0,1])
+		_dim = random.choice([0,1])
 
 		# How much should the shape change?
 		shape_diff = self.__modifiedPoisson(self.shape_prob_params)
@@ -212,7 +214,7 @@ class Pool2DGene(AbstractGene):
 		"""
 
 		# Pick a random pool dimension to mutate
-		_dim = np.random.choice([0,1])
+		_dim = random.choice([0,1])
 
 		# How much should the stride be changes?
 		stride_diff = self.__modifiedPoisson(self.stride_prob_params)

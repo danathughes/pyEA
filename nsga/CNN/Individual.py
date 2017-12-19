@@ -2,56 +2,55 @@
 ##
 ##
 
+import numpy as np
 import random
 
-from CNN_Gene import *
-from pyNSGAII import AbstractIndividual
+from genes import *
+from ..pyNSGAII import AbstractIndividual
 import generator
 
 
-class CNN_Individual(AbstractIndividual):
+class Individual(AbstractIndividual):
 	"""
 	An individual encoding a CNN
 	"""
 
-	def __init__(self, input_shape, output_size, evaluator, mutation_rate = 0.25):
+	def __init__(self, input_shape, output_size, evaluator, **kwargs):
 		"""
 		"""
 
 		AbstractIndividual.__init__(self)
 
-		# Probabilities of generating convolution, pooling and fully connected layers
-		self.convolutionProb = 0.5
-		self.poolingProb = 0.5
-		self.fullConnectionProb = 0.5
+		# Probabilities of generating convolution, pooling and fully connected layers, and mutation rate
+		self.convolutionProb = kwargs.get('convolution_prob', 0.5)
+		self.poolingProb = kwargs.get('pooling_prob', 0.5)
+		self.fullConnectionProb = kwargs.get('full_connection_prob', 0.5)
+		self.mutation_rate = kwargs.get('mutation_rate', 0.25)
+
+		self.mutate_add_prob = kwargs.get('mutation_add_prob', 0.25)
+		self.mutate_remove_prob = kwargs.get('mutation_remove_prob', 0.25)
+		self.mutate_modify_prob = kwargs.get('mutation_modify_prob', 0.25)
 
 		self.input_shape = input_shape
 		self.output_size = output_size
 
-		# Is this a 1D or 2D CNN?
-		if len(input_shape) == 3:
-			self.is2D = True
-			self.__generateConvGene = generator.generate2DConvGene
-			self.__generatePoolGene = generator.generate2DPoolGene
-		elif len(input_shape) == 2:
-			self.is2D = False
-			self.__generateConvGene = generator.generate1DConvGene
-			self.__generatePoolGene = generator.generate1DPoolGene
-		else:
-			# Not a valid input shape (yet?)
-			print "Invalid input dimensionality: %d" % len(input_shape)
+		# What's the input dimensionality (ignoring number of channels)
+		n_dims = len(input_shape) - 1
 
-		self.__generateFullConnection = generator.generateFullConnection
+		# Build generators for each layer type
+		self.__generateConvGene = generator.createConvGeneGenerator(n_dims, **kwargs)
+		self.__generatePoolGene = generator.createPoolGeneGenerator(n_dims, **kwargs)	
+		self.__generateFullConnection = generator.createFullConnectionGeneGenerator(**kwargs)
 
 		# Create a genotype
 		self.genotype = self.generateGenotype()
-#		self.gene = Genotype(input_shape, output_size)
 
 		self.objective = [100000.0, 100000.0]
 
-		self.mutation_rate = mutation_rate
-
 		self.evaluator = evaluator
+
+		# Store keyword arguments for future cloning
+		self.kwargs = kwargs
 
 
 	def calculateObjective(self):
@@ -77,8 +76,8 @@ class CNN_Individual(AbstractIndividual):
 		Make a copy of me!
 		"""
 
-		clone = CNN_Individual(self.input_shape, self.output_size, self.evaluator)
-		#clone.gene = self.gene.clone()
+		clone = Individual(self.input_shape, self.output_size, self.evaluator, **self.kwargs)
+
 		clone.genotype = [gene.clone() for gene in self.genotype]
 		clone.link_genes()
 		clone.objective = [o for o in self.objective]
@@ -133,6 +132,7 @@ class CNN_Individual(AbstractIndividual):
 
 		else:
 			# Make two new genotypes
+
 			crossover_point = random.choice(crossover_points)
 
 			child_gene1 = []
@@ -178,7 +178,7 @@ class CNN_Individual(AbstractIndividual):
 
 
 		# Should a layer be removed?
-		if np.random.random() < MUTATE_REMOVE_PROB:
+		if np.random.random() < self.mutate_remove_prob:
 
 #			print "Try to remove gene;",
 
@@ -208,7 +208,7 @@ class CNN_Individual(AbstractIndividual):
 
 
 		# Should a layer be added?
-		if np.random.random() < MUTATE_ADD_PROB:
+		if np.random.random() < self.mutate_add_prob:
 
 #			print "Try to add gene;",
 			"""
@@ -272,7 +272,7 @@ class CNN_Individual(AbstractIndividual):
 #				print "Gene not added - unable to create: ", layer_type, ";"
 
 
-		if np.random.random() < MUTATE_MODIFY_PROB:
+		if np.random.random() < self.mutate_modify_prob:
 
 #			print "Trying to mutate gene;",
 
@@ -312,16 +312,17 @@ class CNN_Individual(AbstractIndividual):
 
 		genotype = [lastGene]
 
-		# Add the Convolutional Layers (and pooling layers)
-		while random.random() < self.convolutionProb:
-			if MIN_CNN_WIDTH > lastGene.outputDimension()[0]:
-				break
-			if self.is2D and MIN_CNN_WIDTH > lastGene.outputDimension()[1]:
-				break
-
-			# Add the convolution layer, with random genes
+		# Add the Convolutional Layers (and pooling layers) until random check or all output dimensions are 1
+		while np.random.random() < self.convolutionProb and np.any(lastGene.outputDimension()[:-1] > 1):
+			
+			# Create a random convolutional layer
 			tempGene = self.__generateConvGene(lastGene, outGene)
-			tempGene.next_gene = outGene
+
+			if tempGene:
+				tempGene.next_gene = outGene
+			else:
+				print "DIDN'T CREATE POOLING GENE -- LOOK INTO THIS!"
+				break
 
 			if tempGene.canFollow(lastGene):
 				lastGene.next_gene = tempGene
@@ -330,32 +331,40 @@ class CNN_Individual(AbstractIndividual):
 				genotype.append(lastGene)
 			else:
 				# Failed to create a genotype
-				return None
+				print "ERROR CREATING CONVOLUTIONAL GENE -- FIX THIS DANA!"
+				break
 
 			# Should this be followed by a pooling layer?
-			if random.random() < self.poolingProb:
-				if MIN_POOL_SIZE > lastGene.outputDimension()[0]:
-					break
-				if self.is2D and MIN_POOL_SIZE > lastGene.outputDimension()[1]:
-					break
+			if np.random.random() < self.poolingProb and np.any(lastGene.outputDimension()[:-1] > 1):
 
+				# Create a random pooling layer
 				tempGene = self.__generatePoolGene(lastGene, outGene)
-				tempGene.next_gene = outGene
+	
+				if tempGene:
+					tempGene.next_gene = outGene
+				else:
+					print "DIDN'T CREATE POOLING GENE -- LOOK INTO THIS!"
+					break
 
 				if tempGene.canFollow(lastGene):
 					lastGene.next_gene = tempGene
 					tempGene.prev_gene = lastGene
 					lastGene = tempGene
 					genotype.append(lastGene)
-
 				else:
 					# Failed to create a genotype
-					return None
+					print "ERROR CREATING POOLING GENE -- FIX THIS DANA!"
+					break
 
 		# Fill in fully connected layers
-		while random.random() < self.fullConnectionProb:
-			tempGene = self.__generateFullConnection(lastGene)
-			tempGene.next_gene = outGene
+		while np.random.random() < self.fullConnectionProb:
+			tempGene = self.__generateFullConnection(lastGene, outGene)
+
+			if tempGene:
+				tempGene.next_gene = outGene
+			else:
+				print "DIDN'T CREATE POOLING GENE -- LOOK INTO THIS!"
+				break
 
 			if tempGene.canFollow(lastGene):
 				lastGene.next_gene = tempGene
@@ -365,11 +374,38 @@ class CNN_Individual(AbstractIndividual):
 
 			else:
 				# Failed to create a genotype
-				return None
+				print "ERROR CREATING FULLY CONNECTED GENE -- FIX THIS DANA!"
+				break
+
+
+		# If no layers have been successfully generated, make one at random
+		while len(genotype) == 1:
+			generator = np.random.choice([self.__generateConvGene, self.__generatePoolGene, self.__generateFullConnection])
+
+			tempGene = generator(lastGene, outGene)
+
+			if tempGene:
+				tempGene.next_gene = outGene
+			else:
+				print "DIDN'T CREATE BACKUP GENE"
+				break
+
+			if tempGene.canFollow(lastGene):
+				lastGene.next_gene = tempGene
+				tempGene.prev_gene = lastGene
+				lastGene = tempGene
+				genotype.append(lastGene)
+			else:
+				print "DIDN'T CREATE BACKUP GENE"
+				break
+
 
 		# Genotype successfully created
 		outGene.prev_gene = genotype[-1]
 		genotype.append(outGene)
+
+		# Just in case..
+#		self.link_genes()
 
 		return genotype
 
@@ -380,10 +416,7 @@ class CNN_Individual(AbstractIndividual):
 		"""
 
 		if input_tensor == None:
-			print "ARGH!"
-			print self
-			print
-			return None
+			input_tensor = self.genotype[0].generateLayer(input_tensor)
 
 		prev_tensor = input_tensor
 

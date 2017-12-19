@@ -16,6 +16,7 @@ INPUT - [ m * n * k] - This is the case for a 2D gene (i.e., image)
 """
 
 from AbstractGene import *
+from DummyGene import *
 
 
 class OutputGene(AbstractGene):
@@ -98,8 +99,8 @@ class OutputGene(AbstractGene):
 			input_shape = input_tensor.get_shape().as_list()[1:]
 
 		# Create the weights and bias to the softmax layer
-		weights = tf.Variable(tf.truncated_normal((input_shape[0], self.dimension), stddev=0.05))
-		bias = tf.Variable(tf.constant(0.0, shape=(self.dimension,)))
+		weights = tf.Variable(tf.truncated_normal(tuple(input_shape) + self.dimension, stddev=0.05))
+		bias = tf.Variable(tf.constant(0.0, shape=self.dimension,))
 
 		self.tensor = tf.nn.softmax(tf.matmul(input_tensor, weights) + bias)
 
