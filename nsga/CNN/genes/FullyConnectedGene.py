@@ -49,6 +49,8 @@ class FullyConnectedGene(AbstractGene):
 
 		self.size_prob_params = (lambda_size, n_min_size)
 
+		self.max_size = kwargs.get('max_size', 250)
+
 
 	def clone(self):
 		"""
@@ -125,6 +127,7 @@ class FullyConnectedGene(AbstractGene):
 			new_size = old_size - size_diff
 
 		new_size = max(new_size, 1)
+		new_size = min(new_size, self.max_size)
 
 		self.dimension = (new_size,)
 

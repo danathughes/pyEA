@@ -24,12 +24,12 @@ class Individual(AbstractIndividual):
 		# Probabilities of generating convolution, pooling and fully connected layers, and mutation rate
 		self.convolutionProb = kwargs.get('convolution_prob', 0.5)
 		self.poolingProb = kwargs.get('pooling_prob', 0.5)
-		self.fullConnectionProb = kwargs.get('full_connection_prob', 0.5)
+		self.fullConnectionProb = kwargs.get('full_connection_prob', 0.1)
 		self.mutation_rate = kwargs.get('mutation_rate', 0.25)
 
-		self.mutate_add_prob = kwargs.get('mutation_add_prob', 0.25)
-		self.mutate_remove_prob = kwargs.get('mutation_remove_prob', 0.25)
-		self.mutate_modify_prob = kwargs.get('mutation_modify_prob', 0.25)
+		self.mutate_add_prob = kwargs.get('mutation_add_prob', 0.5)
+		self.mutate_remove_prob = kwargs.get('mutation_remove_prob', 0.5)
+		self.mutate_modify_prob = kwargs.get('mutation_modify_prob', 0.5)
 
 		self.input_shape = input_shape
 		self.output_size = output_size
