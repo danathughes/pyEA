@@ -9,6 +9,7 @@ from nsga.pyNSGAII import NSGA_II
 from nsga import CNN
 from nsga.utils.visualizer import *
 from nsga.utils import config_loader
+from nsga.utils.population_tracker import PopulationTracker
 
 from ProxyEvaluator import *
 from SingleNetworkEvaluator import *
@@ -17,6 +18,8 @@ from DummyEvaluator import *
 #TENSORFLOW_EVALUATOR = ProxyEvaluator()
 TENSORFLOW_EVALUATOR = SingleNetworkEvaluator('mnist.pkl')
 #TENSORFLOW_EVALUATOR = DummyEvaluator('mnist.pkl')
+
+POPULATION_TRACKER = PopulationTracker()
 
 config = config_loader.load('NSGA_II.cfg')
 INPUT_SHAPE = config['input_shape']
@@ -43,7 +46,7 @@ if __name__ == '__main__':
 
 	ga = NSGA_II(config['population_size'], CNN_Individual)
 
-	vis = Visualizer([0,1], [0,100000,0,100000])
+	vis = Visualizer([0,1], [0,1,0,100000])
 
 	# Evaluate the initial population
 	for individual in ga.population:
@@ -59,7 +62,7 @@ if __name__ == '__main__':
 		print "  ", p.objective
 
 
-	for i in range(25000):
+	for i in range(250):
 		ga.step()
 		vis.plot(ga.population)
 		print "==="

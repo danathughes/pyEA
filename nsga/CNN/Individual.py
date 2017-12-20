@@ -85,18 +85,19 @@ class Individual(AbstractIndividual):
 		return clone
 
 
-	def isEqual(self, other):
+	def equals(self, other):
 		"""
 		Check if 'I' have the same genotype as 'other' does
 		"""
 
-		if len(self.genotype) == len(other.genotype):
-			for i in range(len(self.genotype)):
-				if str(self.genotype[i]) != str(other.genotype[i]):
-					return False
-			return True
-		else:
+		if len(self.genotype) != len(other.genotype):
 			return False
+
+		for myGene, otherGene in zip(self.genotype, other.genotype):
+			if not myGene.equals(otherGene):
+				return False
+
+		return True
 
 
 	def crossover(self, other):

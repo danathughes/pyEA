@@ -9,7 +9,10 @@ import random
 import tensorflow as tf
 import numpy as np
 
+from sklearn.model_selection import KFold
+
 BATCH_SIZE = 1000
+NUM_SPLITS = 10
 
 
 def make_batches(X, y, batch_size=BATCH_SIZE, shuffle=True):
@@ -61,11 +64,16 @@ class SingleNetworkEvaluator:
 			self.dataset = pickle.load(pickle_file)
 
 		# Input and target shapes
-		self.train_x, self.train_y = self.dataset['train']
-		self.validate_x, self.validate_y = self.dataset['validate']
+		train_x, train_y = self.dataset['train']
+		validate_x, validate_y = self.dataset['validate']
 
-		self.input_shape = self.train_x.shape[1:]
-		self.target_shape = self.train_y.shape[1:]
+		self.X = np.concatenate([train_x, validate_x], axis=0)
+		self.y = np.concatenate([train_y, validate_y], axis=0)
+
+		self.kfold = KFold(n_splits=NUM_SPLITS, shuffle=True)
+
+		self.input_shape = self.X.shape[1:]
+		self.target_shape = self.y.shape[1:]
 
 		# Create a session
 #		self.sess = tf.InteractiveSession()
@@ -141,13 +149,12 @@ class SingleNetworkEvaluator:
 			for _x, _y in zip(x_batch, y_batch):
 				fd = {self.input: _x, self.target: _y}
 				self.sess.run(self.train_step, feed_dict=fd)
-
-			print '.',
-		print
 		
 		if self.verbose:
 			loss, accuracy = self.__loss_and_accuracy(x,y)
 			print "Loss: %f, Accuracy: %f" % (loss, accuracy)
+		else:
+			print
 
 
 	def __param_count(self):
@@ -231,11 +238,26 @@ class SingleNetworkEvaluator:
 		self.__build_model(individual)
 		self.sess.run(tf.global_variables_initializer())
 
-		# Train the model
-		self.__train(self.train_x, self.train_y)
+		# Split the training data into 10 folds
+		loss, accuracy = 0.0, 0.0
 
-		# Get the results
-		loss, accuracy = self.__loss_and_accuracy(self.validate_x, self.validate_y)
+		fold_num = 1
+
+		# Train the model
+		for train_idx, valid_idx in self.kfold.split(self.X):
+			print "  Fold %d: " % fold_num,
+			fold_num += 1
+
+			train_x, train_y = self.X[train_idx], self.y[train_idx]
+			valid_x, valid_y = self.X[valid_idx], self.y[valid_idx]
+
+			self.__train(train_x, train_y)
+
+			# Get the results
+			fold_loss, fold_accuracy = self.__loss_and_accuracy(valid_x, valid_y)
+			loss += float(fold_loss) / NUM_SPLITS
+			accuracy += float(fold_accuracy) / NUM_SPLITS
+
 		num_params = self.__param_count()
 
 		# All done!
