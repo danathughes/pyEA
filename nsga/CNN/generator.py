@@ -195,7 +195,7 @@ def createPoolGeneGenerator(dimension, **kwargs):
 			min_output_size = 1
 
 		# Determine what the minimum and maximum pooling size is, assuming a stride of 1
-		min_pool_size = 2
+		min_pool_size = 1
 		max_pool_size = np.floor( input_size - (min_output_size - 1))
 
 		# Sanity check -- the pool size must be feasible
@@ -248,7 +248,7 @@ def createPoolGeneGenerator(dimension, **kwargs):
 
 
 		# Determine what the minimum and maximum pooling size is, assuming a stride of 1
-		min_pool_height, min_pool_width = 2, 2
+		min_pool_height, min_pool_width = 1, 1
 		max_pool_height = np.floor( input_height - (min_output_height - 1) )
 		max_pool_width = np.floor( input_width - (min_output_width - 1) )
 

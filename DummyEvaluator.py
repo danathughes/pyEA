@@ -28,6 +28,12 @@ class DummyEvaluator:
 		# Update the individual's objective
 		x = individual.objective[0]
 		y = individual.objective[1]
+
+		if x == np.inf:
+			x = 100000.
+		if y == np.inf:
+			y = 100000.
+
 		individual.objective = [np.random.normal(x, x/10), np.random.normal(y, y/10)]
 
 

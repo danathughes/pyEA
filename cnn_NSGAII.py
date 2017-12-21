@@ -16,8 +16,8 @@ from SingleNetworkEvaluator import *
 from DummyEvaluator import *
 
 #TENSORFLOW_EVALUATOR = ProxyEvaluator()
-TENSORFLOW_EVALUATOR = SingleNetworkEvaluator('mnist.pkl')
-#TENSORFLOW_EVALUATOR = DummyEvaluator('mnist.pkl')
+#TENSORFLOW_EVALUATOR = SingleNetworkEvaluator('mnist.pkl')
+TENSORFLOW_EVALUATOR = DummyEvaluator('mnist.pkl')
 
 POPULATION_TRACKER = PopulationTracker()
 
@@ -34,7 +34,7 @@ class CNN_Individual(CNN.Individual):
 		"""
 		"""
 
-		CNN.Individual.__init__(self, INPUT_SHAPE, OUTPUT_SIZE, TENSORFLOW_EVALUATOR)
+		CNN.Individual.__init__(self, INPUT_SHAPE, OUTPUT_SIZE, TENSORFLOW_EVALUATOR, population_tracker=POPULATION_TRACKER)
 
 
 
@@ -46,7 +46,7 @@ if __name__ == '__main__':
 
 	ga = NSGA_II(config['population_size'], CNN_Individual)
 
-	vis = Visualizer([0,1], [0,1,0,100000])
+	vis = Visualizer([0,1], [0,100000,0,100000])
 
 	# Evaluate the initial population
 	for individual in ga.population:
@@ -56,16 +56,16 @@ if __name__ == '__main__':
 
 	vis.plot(ga.population)
 
-	print "==="
+	print "=== Initial Population"
 	print "Current Population Objectives:"
-	for p in ga.population:
-		print "  ", p.objective
+#	for p in ga.population:
+#		print "  ", p.objective
 
 
-	for i in range(250):
+	for i in range(25000):
 		ga.step()
 		vis.plot(ga.population)
-		print "==="
-		print "Current Population Objectives:"
-		for p in ga.population:
-			print "  ", p.objective
+		print "=== Population %d" % (i+1)
+#		print "Current Population Objectives:"
+#		for p in ga.population:
+#			print "  ", p.objective

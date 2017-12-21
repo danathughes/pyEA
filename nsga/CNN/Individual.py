@@ -27,9 +27,9 @@ class Individual(AbstractIndividual):
 		self.fullConnectionProb = kwargs.get('full_connection_prob', 0.1)
 		self.mutation_rate = kwargs.get('mutation_rate', 0.25)
 
-		self.mutate_add_prob = kwargs.get('mutation_add_prob', 0.5)
-		self.mutate_remove_prob = kwargs.get('mutation_remove_prob', 0.5)
-		self.mutate_modify_prob = kwargs.get('mutation_modify_prob', 0.5)
+#		self.mutate_add_prob = kwargs.get('mutation_add_prob', 0.5)
+#		self.mutate_remove_prob = kwargs.get('mutation_remove_prob', 0.5)
+#		self.mutate_modify_prob = kwargs.get('mutation_modify_prob', 0.5)
 
 		self.input_shape = input_shape
 		self.output_size = output_size
@@ -45,17 +45,24 @@ class Individual(AbstractIndividual):
 		# Create a genotype
 		self.genotype = self.generateGenotype()
 
-		self.objective = [100000.0, 100000.0]
+		self.objective = [np.inf, np.inf]
 
 		self.evaluator = evaluator
 
 		# Store keyword arguments for future cloning
 		self.kwargs = kwargs
 
+		self.population_tracker = kwargs.get('population_tracker', None)
+
 
 	def calculateObjective(self):
 		"""
+		Evaluate the objective function for this individual
 		"""
+
+		# If we're evaluating this, add it to the population tracker to make sure that this individual
+		# isn't generated in the future
+		self.population_tracker.add(self)
 
 		self.evaluator.add(self)
 
@@ -68,7 +75,6 @@ class Individual(AbstractIndividual):
 		for i in range(len(self.genotype) - 1):
 			self.genotype[i].next_gene = self.genotype[i+1]
 			self.genotype[i+1].prev_gene = self.genotype[i]
-
 
 
 	def clone(self):
@@ -110,8 +116,8 @@ class Individual(AbstractIndividual):
 
 		# Neither children have been evaluated...
 
-		child1.objective = [100000.0, 100000.0]
-		child2.objective = [100000.0, 100000.0]
+		child1.objective = [np.inf, np.inf]
+		child2.objective = [np.inf, np.inf]
 
 		# What are valid crossover points?
 		crossover_points = []
@@ -128,12 +134,11 @@ class Individual(AbstractIndividual):
 
 		# if the list is empty, cannot crossover---force a mutation instead
 		if len(crossover_points) == 0:
-			child1.mutate()
-			child2.mutate()
+			child1._mutate()
+			child2._mutate()
 
 		else:
 			# Make two new genotypes
-
 			crossover_point = random.choice(crossover_points)
 
 			child_gene1 = []
@@ -158,147 +163,147 @@ class Individual(AbstractIndividual):
 			child1.link_genes()
 			child2.link_genes()
 
+			# Have either child been generated before?  If so, then generate a random child until something novel
+			# is provided
+			MAX_TRYS = 100
+			trys = 0
+
+			while self.population_tracker.contains(child1) and trys < MAX_TRYS:
+				child1.genotype = self.generateGenotype()
+				trys += 1
+
+			trys = 0
+			
+			while self.population_tracker.contains(child2):
+				child2.genotype = self.generateGenotype()
+				trys += 1
+
 		return child1, child2
 
 
 	def mutate(self):
 		"""
+		Check if the individual should be mutated, then mutate if so
+		"""
+
+		if random.random() < self.mutation_rate:
+			self._mutate()
+
+
+	def _mutate(self):
+		"""
 		Mutate this individual
 		"""
 
-		# The NSGA-II algorithm automatically calls mutate.  Would like to
-		# have mutation actually be a rare occurance, due to crossover
+		# Shuffle all the mutations
+		mutations = [self._addLayer, self._removeLayer, self._modifyLayer]
+		random.shuffle(mutations)
 
+		mutated = False
+
+		# Try each mutation until one succeeds
+		for mutation in mutations:
+			if not mutated:
+				mutated = mutation()
+
+		return mutated
+
+
+	def _addLayer(self):
 		"""
-		Mutate this individual
+		Add a layer at random to the network
 		"""
 
 		added = False
+
+		# Pick an index
+		idx = np.random.randint(len(self.genotype) - 1)
+
+		# Figure out which types of layers can be generated
+		generators = []
+
+		# Can generate a convolutional layer if the previous layer is input, convolutional or pooling
+		if self.genotype[idx].type in [INPUT, CONV1D, CONV2D, POOL1D, POOL2D]:
+			generators.append(self.__generateConvGene)
+
+		# Can generate a pooling layer if the previous layer is convolutional or input, and the next layer is
+		# convolutional, fully connected or output
+		if self.genotype[idx].type in [INPUT, CONV1D, CONV2D] and self.genotype[idx+1].type in [CONV1D, CONV2D, FULLY_CONNECTED, OUTPUT]:
+			generators.append(self.__generatePoolGene)
+
+		# Can generate a fully connected layer if the next layer is fully connected or output
+		if self.genotype[idx+1].type in [FULLY_CONNECTED, OUTPUT]:
+			generators.append(self.__generateFullConnection)
+
+		# Shuffle the generators, and then try each until something succeeds
+		random.shuffle(generators)
+
+		added_gene = None
+		gen_idx = 0
+
+		while not added_gene and gen_idx < len(generators):
+			added_gene = generators[gen_idx](self.genotype[idx], self.genotype[idx+1])
+
+		# If a gene was actually made, insert it
+		if added_gene:
+			added = True
+			self.genotype = self.genotype[0:idx+1] + [added_gene] + self.genotype[idx+1:]
+	
+		self.link_genes()
+
+		return added
+
+
+	def _removeLayer(self):
+		"""
+		Remove a layer at random from the network
+		"""
+
+		# Shuffle the indices of the genotype, and try to remove a layer until successful
+		idx = range(len(self.genotype))
+		idx = np.random.permutation(idx)
+
 		removed = False
+		i = 0
+
+		while not removed and i < len(idx):
+			# Cannot remove the input or output layer
+			if self.genotype[idx[i]].type == INPUT or self.genotype[idx[i]].type == OUTPUT:
+				i += 1
+			# Can't remove a layer which would put two pooling layers next to each other
+			elif self.genotype[idx[i]-1].type == POOL1D and self.genotype[idx[i]+1].type == POOL1D:
+				i += 1
+			elif self.genotype[idx[i]-1].type == POOL2D and self.genotype[idx[i]+1].type == POOL2D:
+				i += 1
+			else:
+				# Go ahead and remove this!
+				self.genotype = self.genotype[:idx[i]] + self.genotype[idx[i]+1:]
+				removed = True
+
+		self.link_genes()
+
+		return removed
+
+
+	def _modifyLayer(self):
+		"""
+		Perform a modification to one of the layers
+		"""
+
+		# Shuffle the indices of the genotype, and perform mutation on the items in the list until sucessful
+		idx = range(len(self.genotype))
+		idx = np.random.permutation(idx)
+
+		i = 0
 		mutated = False
 
+		while not mutated and i < len(idx):
+			mutated = self.genotype[idx[i]].mutate()
+			i += 1
 
-		# Should a layer be removed?
-		if np.random.random() < self.mutate_remove_prob:
+		self.link_genes()
 
-#			print "Try to remove gene;",
-
-			# Shuffle the indices of the genotype, and try to remove a layer until successful
-			idx = range(len(self.genotype))
-			idx = np.random.permutation(idx)
-
-			i = 0
-
-			while not removed and i < len(idx):
-				# Cannot remove the input or output layer
-				if self.genotype[idx[i]].type == INPUT or self.genotype[idx[i]].type == OUTPUT:
-					i += 1
-				# Can't remove a layer which would put two pooling layers next to each other
-				elif self.genotype[idx[i]-1].type == POOL1D and self.genotype[idx[i]+1].type == POOL1D:
-					i += 1
-				elif self.genotype[idx[i]-1].type == POOL2D and self.genotype[idx[i]+1].type == POOL2D:
-					i += 1
-				else:
-					# Go ahead and remove this!
-					self.genotype = self.genotype[:idx[i]] + self.genotype[idx[i]+1:]
-					removed = True
-#					print "Removed Gene;",
-
-			# Clean up the genotype
-			self.link_genes()
-
-
-		# Should a layer be added?
-		if np.random.random() < self.mutate_add_prob:
-
-#			print "Try to add gene;",
-			"""
-			ISSUE:  Adding a 2D Convolutional layer sometimes generates incorrect layers (i.e., kernel size bigger than input...)
-			"""
-			# Right now, should be able to add after any layer
-			idx = np.random.randint(0,len(self.genotype) - 1)
-
-			# Available layers
-			layer_types = []
-
-			# Can add a convolutional layer if the previous layer is input, convolutional or pooling
-			if self.genotype[idx].type in [INPUT, CONV1D, CONV2D, POOL1D, POOL2D]:
-				layer_types.append('conv')
-
-			# Can add a pooling lyaer if the previous layer is input or convolutional, and if
-			# the next layer isn't a pooling layer
-			if self.genotype[idx].type in [INPUT, CONV1D, CONV2D] and not self.genotype[idx+1].type in [POOL1D,POOL2D]:
-				layer_types.append('pool')
-
-			# Can add a fully connected layer if the next layer is fully connected or output
-			if self.genotype[idx].type in [FULLY_CONNECTED, OUTPUT]:
-				layer_types.append('fc')
-
-			# Pick a layer type
-			layer_type = np.random.choice(layer_types)
-
-			if layer_type == 'conv':
-				layer = self.__generateConvGene(self.genotype[idx], self.genotype[idx+1])
-			elif layer_type == 'pool':
-				layer = self.__generatePoolGene(self.genotype[idx], self.genotype[idx+1])
-			elif layer_type == 'fc':
-				layer = self.__generateFullConnection(self.genotype[idx])
-
-			if layer:
-				# Sanity check--is the output dimensionality negative for any element from this layer?
-				dummy_input = DummyGene(self.genotype[idx].outputDimension())
-				layer.prev_gene = dummy_input
-				layer_output_size = layer.outputDimension()
-
-				if layer_type == 'fc':
-					layer_output_size = (layer_output_size,)
-
-				is_valid = True
-				for d in layer_output_size:
-					if d < 1:
-						is_valid = False
-
-				if not is_valid:
-#					print "Gene not added - negative dimension output:", layer_type, ";"
-					added = False
-				else:
-					self.genotype = self.genotype[:idx+1] + [layer] + self.genotype[idx+1:]
-					self.link_genes()
-
-					# Clean up the genotype
-					added = True
-#					print "Added Gene;",
-			else:
-				pass
-#				print "Gene not added - unable to create: ", layer_type, ";"
-
-
-		if np.random.random() < self.mutate_modify_prob:
-
-#			print "Trying to mutate gene;",
-
-			# Shuffle the indices of the genotype, and perform mutation on the items in the list until sucessful
-			idx = range(len(self.genotype))
-			idx = np.random.permutation(idx)
-
-			i = 0
-
-			while not mutated and i < len(idx):
-				mutated = self.genotype[idx[i]].mutate()
-				i += 1
-
-#			if mutated:
-#				print "Mutated Gene;",
-
-			self.link_genes()
-
-		# Inform if the genotype has actually changed
-#		if not (mutated or added or removed):
-#			print "Did not mutate!"
-#		else:
-#			print
-
-		return mutated or added or removed
+		return mutated
 
 
 	def generateGenotype(self):
@@ -405,9 +410,6 @@ class Individual(AbstractIndividual):
 		outGene.prev_gene = genotype[-1]
 		genotype.append(outGene)
 
-		# Just in case..
-#		self.link_genes()
-
 		return genotype
 
 
@@ -425,10 +427,6 @@ class Individual(AbstractIndividual):
 
 		for gene in self.genotype:
 			prev_tensor = gene.generateLayer(prev_tensor)
-			if prev_tensor == None:
-				print "AAARG!"
-				print gene
-				print
 			tensors.append(prev_tensor)
 
 		# Return the input and output tensor

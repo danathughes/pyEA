@@ -218,9 +218,6 @@ class SingleNetworkEvaluator:
 		pickle.dump(individual.gene, pickle_file)
 		pickle_file.close()
 
-#		with open(filename, 'wb') as pickle_file:
-#			pickle.dump(str(individual.gene), pickle_file)
-
 		# Delete whatever is in the current graph
 		tf.reset_default_graph()
 		self.sess = tf.Session(config = self.sess_config)
@@ -231,10 +228,7 @@ class SingleNetworkEvaluator:
 
 		# Try to make the model
 		self.has_model = False
-	#	with tf.variable_scope('model'):
-#		with tf.device('/device:GPU:0'):
-#		with tf.device('/device:GPU:1'):
-#		with tf.device('/cpu:0'):
+
 		self.__build_model(individual)
 		self.sess.run(tf.global_variables_initializer())
 
