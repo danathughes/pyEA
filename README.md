@@ -11,10 +11,10 @@ Table of Contents
 * [Operators: crossover and computation](#operators--crossover-and-computation)
 
 ## TODO list
-- Check identity to avoid evaluate the same solution
+- Check identity to avoid evaluate the same solution (Done. Yang: not yet used)
 - Externel statistic object to guide mutation
 - Cross validation
-- Checkpoint
+- Checkpoint (Needed for 'Summit'. Use database might be a good choice.)
 
 ## Evolutionary Algorithms, EAs
 Evolutionary Algorithms (EAs) are a non-deterministic algorithm to solve optimization problems for optimal solutions.
