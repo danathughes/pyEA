@@ -16,8 +16,8 @@ from SingleNetworkEvaluator import *
 from DummyEvaluator import *
 
 #TENSORFLOW_EVALUATOR = ProxyEvaluator()
-#TENSORFLOW_EVALUATOR = SingleNetworkEvaluator('mnist.pkl')
-TENSORFLOW_EVALUATOR = DummyEvaluator('mnist.pkl')
+TENSORFLOW_EVALUATOR = SingleNetworkEvaluator('mnist.pkl')
+#TENSORFLOW_EVALUATOR = DummyEvaluator('mnist.pkl')
 
 POPULATION_TRACKER = PopulationTracker()
 
@@ -46,7 +46,7 @@ if __name__ == '__main__':
 
 	ga = NSGA_II(config['population_size'], CNN_Individual)
 
-	vis = Visualizer([0,1], [0,100000,0,100000])
+	vis = Visualizer([0,1], [0,1.00000,0,100000])
 
 	# Evaluate the initial population
 	for individual in ga.population:
@@ -62,7 +62,7 @@ if __name__ == '__main__':
 #		print "  ", p.objective
 
 
-	for i in range(25000):
+	for i in range(250):
 		ga.step()
 		vis.plot(ga.population)
 		print "=== Population %d" % (i+1)
