@@ -13,10 +13,12 @@ from nsga.utils.population_tracker import PopulationTracker
 
 from ProxyEvaluator import *
 from SingleNetworkEvaluator import *
+from MultiNetworkEvaluator import *
 from DummyEvaluator import *
 
 #TENSORFLOW_EVALUATOR = ProxyEvaluator()
-TENSORFLOW_EVALUATOR = SingleNetworkEvaluator('mnist.pkl')
+#TENSORFLOW_EVALUATOR = SingleNetworkEvaluator('mnist.pkl')
+TENSORFLOW_EVALUATOR = MultiNetworkEvaluator('mnist.pkl', 2)
 #TENSORFLOW_EVALUATOR = DummyEvaluator('mnist.pkl')
 
 POPULATION_TRACKER = PopulationTracker()
