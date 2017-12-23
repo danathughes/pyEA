@@ -13,8 +13,9 @@ Table of Contents
 ## TODO list
 - Check identity to avoid evaluate the same solution (Done. Yang: not yet used)
 - Externel statistic object to guide mutation
-- Cross validation
+- Cross validation (Done.)
 - Checkpoint (Needed for 'Summit'. Use database might be a good choice.)
+- Multi-model parallel evaluation (Done.  Useful for 'Summit')
 
 ## Evolutionary Algorithms, EAs
 Evolutionary Algorithms (EAs) are a non-deterministic algorithm to solve optimization problems for optimal solutions.
