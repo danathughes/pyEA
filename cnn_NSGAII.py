@@ -17,8 +17,8 @@ from MultiNetworkEvaluator import *
 from DummyEvaluator import *
 
 #TENSORFLOW_EVALUATOR = ProxyEvaluator()
-#TENSORFLOW_EVALUATOR = SingleNetworkEvaluator('mnist.pkl')
-TENSORFLOW_EVALUATOR = MultiNetworkEvaluator('mnist.pkl', 2)
+TENSORFLOW_EVALUATOR = SingleNetworkEvaluator('cifar_10.pkl')
+#TENSORFLOW_EVALUATOR = MultiNetworkEvaluator('mnist.pkl', 5)
 #TENSORFLOW_EVALUATOR = DummyEvaluator('mnist.pkl')
 
 POPULATION_TRACKER = PopulationTracker()
@@ -64,7 +64,7 @@ if __name__ == '__main__':
 #		print "  ", p.objective
 
 
-	for i in range(250):
+	for i in range(100):
 		ga.step()
 		vis.plot(ga.population)
 		print "=== Population %d" % (i+1)

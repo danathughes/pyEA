@@ -11,8 +11,8 @@ import numpy as np
 
 from sklearn.model_selection import KFold
 
-BATCH_SIZE = 1000
-NUM_SPLITS = 10
+BATCH_SIZE = 100
+NUM_SPLITS = 3
 
 
 def make_batches(X, y, batch_size=BATCH_SIZE, shuffle=True):
@@ -45,7 +45,7 @@ class SingleNetworkEvaluator:
 	"""
 	"""
 
-	def __init__(self, dataset_filename, population_path='./population', train_steps=25):
+	def __init__(self, dataset_filename, population_path='./population', train_steps=5000):
 		"""
 		Create an object with the dataset loaded, and a path to store individuals and results
 		"""
