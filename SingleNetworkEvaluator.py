@@ -45,7 +45,7 @@ class SingleNetworkEvaluator:
 	"""
 	"""
 
-	def __init__(self, dataset_filename, population_path='./population', train_steps=5000):
+	def __init__(self, dataset_filename, population_path='./population', train_steps=50):
 		"""
 		Create an object with the dataset loaded, and a path to store individuals and results
 		"""
