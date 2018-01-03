@@ -45,7 +45,7 @@ class SingleNetworkEvaluator:
 	"""
 	"""
 
-	def __init__(self, dataset_filename, population_path='./population', train_steps=50):
+	def __init__(self, dataset_filename, population_path='./population', train_steps=500, gpu_id='/device:GPU:0'):
 		"""
 		Create an object with the dataset loaded, and a path to store individuals and results
 		"""
@@ -55,6 +55,8 @@ class SingleNetworkEvaluator:
 		self.verbose = True
 
 		self.individual_num = 0
+
+		self.gpu_id = gpu_id
 
 		# Load the dataset
 		if self.verbose:
@@ -76,17 +78,13 @@ class SingleNetworkEvaluator:
 		self.target_shape = self.y.shape[1:]
 
 		# Create a session
-#		self.sess = tf.InteractiveSession()
 		self.sess = None
 
 		# Input and output tensors
-#		self.input = tf.placeholder(tf.float32, (None,) + self.input_shape)
-#		self.target = tf.placeholder(tf.float32, (None,) + self.target_shape)
 		self.input = None
 		self.target = None
 
 		# Create an optimizer
-#		self.optimizer = tf.train.AdamOptimizer(0.01)
 		self.optimizer = None
 
 		self.output = None
@@ -98,10 +96,11 @@ class SingleNetworkEvaluator:
 
 		self.num_train_steps = train_steps
 
-		self.sess_config = tf.ConfigProto(allow_soft_placement=True)
+		self.sess_config = tf.ConfigProto(allow_soft_placement=False, log_device_placement=True)
+#		self.sess_config = tf.ConfigProto(allow_soft_placement=True)
 		self.sess_config.gpu_options.allocator_type='BFC'
-#		self.sess_config.gpu_options.per_process_gpu_memory_fraction = 0.90
-#		self.sess_config.gpu_options.allow_growth = True
+		self.sess_config.gpu_options.per_process_gpu_memory_fraction = 0.20
+		self.sess_config.gpu_options.allow_growth = True
 
 
 	def __build_model(self, individual):
@@ -150,11 +149,11 @@ class SingleNetworkEvaluator:
 				fd = {self.input: _x, self.target: _y}
 				self.sess.run(self.train_step, feed_dict=fd)
 		
-		if self.verbose:
-			loss, accuracy = self.__loss_and_accuracy(x,y)
-			print "Loss: %f, Accuracy: %f" % (loss, accuracy)
-		else:
-			print
+			if self.verbose:
+				loss, accuracy = self.__loss_and_accuracy(x,y)
+				print "\tStep %d: Loss: %f, Accuracy: %f" % (i, loss, accuracy)
+			else:
+				print
 
 
 	def __param_count(self):
@@ -222,14 +221,15 @@ class SingleNetworkEvaluator:
 		tf.reset_default_graph()
 		self.sess = tf.Session(config = self.sess_config)
 
-		self.input = tf.placeholder(tf.float32, (None,) + self.input_shape)
-		self.target = tf.placeholder(tf.float32, (None,) + self.target_shape)
-		self.optimizer = tf.train.AdamOptimizer(0.01)
+		with tf.device(self.gpu_id):
+			self.input = tf.placeholder(tf.float32, (None,) + self.input_shape)
+			self.target = tf.placeholder(tf.float32, (None,) + self.target_shape)
+			self.optimizer = tf.train.AdamOptimizer(0.0001)
 
-		# Try to make the model
-		self.has_model = False
+			# Try to make the model
+			self.has_model = False
 
-		self.__build_model(individual)
+			self.__build_model(individual)
 		self.sess.run(tf.global_variables_initializer())
 
 		# Split the training data into 10 folds
@@ -239,7 +239,7 @@ class SingleNetworkEvaluator:
 
 		# Train the model
 		for train_idx, valid_idx in self.kfold.split(self.X):
-			print "  Fold %d: " % fold_num,
+			print "  Fold %d: " % fold_num
 			fold_num += 1
 
 			train_x, train_y = self.X[train_idx], self.y[train_idx]
@@ -251,6 +251,9 @@ class SingleNetworkEvaluator:
 			fold_loss, fold_accuracy = self.__loss_and_accuracy(valid_x, valid_y)
 			loss += float(fold_loss) / NUM_SPLITS
 			accuracy += float(fold_accuracy) / NUM_SPLITS
+
+			# Reset the parameters
+			self.sess.run(tf.global_variables_initializer())
 
 		num_params = self.__param_count()
 
