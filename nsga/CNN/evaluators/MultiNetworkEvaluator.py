@@ -11,8 +11,8 @@ import numpy as np
 
 from sklearn.model_selection import KFold
 
-BATCH_SIZE = 1000
-NUM_SPLITS = 10
+BATCH_SIZE = 100
+NUM_SPLITS = 3
 
 
 def make_batches(X, y, batch_size=BATCH_SIZE, shuffle=True):
@@ -45,7 +45,7 @@ class MultiNetworkEvaluator:
 	"""
 	"""
 
-	def __init__(self, dataset_filename, num_models, population_path='./population', train_steps=25):
+	def __init__(self, dataset_filename, num_models, population_path='./population', gpu_id='/device:GPU:0', **kwargs):
 		"""
 		Create an object with the dataset loaded, and a path to store individuals and results
 		"""
@@ -58,6 +58,8 @@ class MultiNetworkEvaluator:
 		self.model_num = 0
 		self.individual_num = 0
 
+		self.gpu_id = gpu_id
+
 		# Load the dataset
 		if self.verbose:
 			print "Loading dataset:", dataset_filename
@@ -66,23 +68,21 @@ class MultiNetworkEvaluator:
 			self.dataset = pickle.load(pickle_file)
 
 		# Input and target shapes
-		train_x, train_y = self.dataset['train']
-		validate_x, validate_y = self.dataset['validate']
+		self.train_x, self.train_y = self.dataset['train']
+		self.validate_x, self.validate_y = self.dataset['validate']
 
-		self.X = np.concatenate([train_x, validate_x], axis=0)
-		self.y = np.concatenate([train_y, validate_y], axis=0)
+		self.input_shape = self.train_x.shape[1:]
+		self.target_shape = self.train_y.shape[1:]
 
-		self.kfold = KFold(n_splits=NUM_SPLITS, shuffle=True)
-
-		self.input_shape = self.X.shape[1:]
-		self.target_shape = self.y.shape[1:]
+		# Create a session
+		self.sess = None
 
 		# Input and output tensors
-		self.input = tf.placeholder(tf.float32, (None,) + self.input_shape)
-		self.target = tf.placeholder(tf.float32, (None,) + self.target_shape)
+		self.input = None
+		self.target = None
 
 		# Create an optimizer
-		self.optimizer = tf.train.AdamOptimizer(0.01)
+		self.optimizer = None
 
 		self.outputs = [None] * self.num_models
 		self.losses = [None] * self.num_models
@@ -94,16 +94,50 @@ class MultiNetworkEvaluator:
 		self.filenames = [None] * self.num_models
 		self.results_filenames = [None] * self.num_models
 
-		self.namespaces = [None] * self.num_models
 
-		self.num_train_steps = train_steps
-
-		self.sess_config = tf.ConfigProto(allow_soft_placement=True)
+		self.sess_config = tf.ConfigProto(allow_soft_placement=False)
+#		self.sess_config = tf.ConfigProto(allow_soft_placement=True)
 		self.sess_config.gpu_options.allocator_type='BFC'
-#		self.sess_config.gpu_options.per_process_gpu_memory_fraction = 0.90
-#		self.sess_config.gpu_options.allow_growth = True
+		self.sess_config.gpu_options.per_process_gpu_memory_fraction = 0.60
+		self.sess_config.gpu_options.allow_growth = True
 
-		self.sess = tf.Session(config = self.sess_config)
+		# When to stop training
+		self.max_train_steps = kwargs.get('max_train_steps', 5000)
+		self.min_train_steps = kwargs.get('min_train_steps', 20)
+		self.filter_lambda_1 = kwargs.get('filter_lambda_1', 0.05)
+		self.filter_lambda_2 = kwargs.get('filter_lambda_2', 0.05)
+		self.filter_lambda_3 = kwargs.get('filter_lambda_3', 0.05)
+
+		self.R_crit = kwargs.get('R_crit', 1.0)
+		self.num_R_crit = kwargs.get('num_R_crit', 10)
+
+		self.X_prev = [0.0] * self.num_models
+		self.X_filter = [0.0] * self.num_models
+		self.var_est = [0.0] * self.num_models
+		self.var_est_data = [0.0] * self.num_models
+
+
+	def __variance_ratio(self, losses):
+		"""
+		Check if the training has converged
+
+		Uses the formula from S. Natarajan and R.R. Rhinehart, "Automated Stopping Criteria for Neural Network Training"
+		"""
+
+		R = [0.0] * self.num_models
+
+		for i in range(self.num_models):
+
+			self.var_est[i] = (0.05 * (losses[i] - self.X_filter[i])**2) + (0.95 * self.var_est[i])
+			self.X_filter[i] = (0.05 * losses[i]) + (0.95 * self.X_filter[i])
+			self.var_est_data[i] = (0.05 * (losses[i] - self.X_prev[i])**2) + (0.95 * self.var_est_data[i])
+
+			R[i] = (2.0 - self.filter_lambda_1) * self.var_est[i] / (self.var_est_data[i] + 1.0e-8)
+
+			self.X_prev[i] = losses[i]
+
+		return R
+
 
 	def __build_model(self, individual):
 		"""
@@ -114,9 +148,9 @@ class MultiNetworkEvaluator:
 		self.namespaces[self.model_num] = namespace
 
 		try:
-			with tf.variable_scope(namespace):
+			with tf.varialbe_scope(namespace):
 				input_tensor, output_tensor = individual.generate_model(self.input)
-
+			
 			loss = tf.losses.softmax_cross_entropy(self.target, output_tensor)
 
 			target_label = tf.argmax(self.target, 1)
@@ -125,7 +159,7 @@ class MultiNetworkEvaluator:
 			accuracy = tf.reduce_mean(tf.cast(equality, tf.float32))
 
 			train_step = self.optimizer.minimize(loss)
-
+			
 			# Success, add this to the list of tensors / operators
 			self.outputs[self.model_num] = output_tensor
 			self.losses[self.model_num] = loss
@@ -133,7 +167,7 @@ class MultiNetworkEvaluator:
 			self.train_steps[self.model_num] = train_step
 
 			self.individuals[self.model_num] = individual
-			
+
 			if self.verbose:
 				print "Model #%d Built" % self.individual_num
 			return True
@@ -149,14 +183,57 @@ class MultiNetworkEvaluator:
 		Run a train step on the model
 		"""
 
+		# Reset steady state ID stuff
+		self.X_prev = [0.0] * self.num_models
+		self.X_filter = [0.0] * self.num_models
+		self.var_est = [0.0] * self.num_models
+		self.var_est_data = [0.0] * self.num_models
+		R_crit_count = [0] * self.num_models
 
-		for i in range(self.num_train_steps):
+		# Maintain a 
+		done = False
+		i = 0
+
+		while not done:
 			# Make some batches
 			x_batch, y_batch = make_batches(x, y)
 
 			for _x, _y in zip(x_batch, y_batch):
 				fd = {self.input: _x, self.target: _y}
 				self.sess.run(self.train_steps, feed_dict=fd)
+
+			# Check if the training is done
+			i += 1
+			loss, accuracy = self.__loss_and_accuracy(x,y)
+			R = self.__variance_ratio(loss)		
+
+			done = True
+
+			for j in range(self.num_models):
+				# Is the loss stable yet?
+				if R[i] < self.R_crit:
+					R_crit_count[i] += 1
+				else:
+					R_crit_count[i] = 0
+
+				if R_crit_count[i] < self.num_R_crit:
+					done = False
+
+			# Has enough training been done yet?
+			if i < self.min_train_steps:
+				done = False
+
+			# Has the maximum amount of training been finished?
+			if i > self.max_train_steps:
+				done = True
+
+			if self.verbose:
+				print "\tStep %d:" % i  
+				print "\t\tLosses:", loss
+				print "\t\tAccuracies:", accuracy
+				print "\t\tR:", R
+			else:
+				print
 
 
 	def __param_count(self):
@@ -195,7 +272,7 @@ class MultiNetworkEvaluator:
 		for _x, _y in zip(x_batch, y_batch):
 
 			fd = {self.input: _x, self.target: _y}
-			results = self.sess.run(self.losses + self.accuracies, feed_dict=fd)
+			results = self.sess.run(self.loss + self.accuracies, feed_dict=fd)
 
 			for i in range(self.num_models):
 				total_losses[i] += float(len(_x) * results[i]) / len(x)
@@ -222,52 +299,42 @@ class MultiNetworkEvaluator:
 		pickle.dump(individual.gene, pickle_file)
 		pickle_file.close()
 
+
 		# Build this particular model -- if successful, increment the model number
-		if self.__build_model(individual):
-			self.model_num += 1
-		else:
-			pass
+		with tf.device(self.gpu_id):
+			if self.__build_model(individual):
+				self.model_num += 1
+			else:
+				pass
 
 		self.individual_num += 1
 
-		# Have we maxed out the models?  Then evaluate everything
 		if self.model_num == self.num_models:
 			self.evaluate()
 			self.reset()
 
 
+
 	def evaluate(self):
 		"""
-		Evaluate the provided individual
+		Evaluate the individuals
 		"""
 
 		if self.verbose:
 			print "===Evaluating==="
 
-		fold_num = 1
 
+		# Split the training data into 10 folds
 		model_loss = [0.0] * self.num_models
 		model_accuracy = [0.0] * self.num_models
 
 		# Train the model
-		for train_idx, valid_idx in self.kfold.split(self.X):
-			print "  Fold %d: " % fold_num
-			fold_num += 1
 
-			train_x, train_y = self.X[train_idx], self.y[train_idx]
-			valid_x, valid_y = self.X[valid_idx], self.y[valid_idx]
+		self.sess.run(tf.global_variables_initializer())
+		self.__train(self.train_x, self.train_y)
 
-			# Initialize the variables
-			self.sess.run(tf.global_variables_initializer())
-
-			self.__train(train_x, train_y)
-
-			# Get the results
-			fold_losses, fold_accuracies = self.__loss_and_accuracy(valid_x, valid_y)
-
-			for i in range(self.num_models):
-				model_loss[i] += float(fold_losses[i]) / NUM_SPLITS
-				model_accuracy[i] += float(model_accuracy[i]) / NUM_SPLITS
+		# Get the results
+		model_loss, model_accuracy = self.__loss_and_accuracy(validate_x, validate_y)
 
 		num_params = self.__param_count()
 
@@ -299,18 +366,14 @@ class MultiNetworkEvaluator:
 		self.filenames = [None] * self.num_models
 		self.results_filenames = [None] * self.num_models
 
-		self.namespaces = [None] * self.num_models
-
 		self.model_num = 0
 
-		# Delete whatever is in the current graph
 		self.sess.close()
 		tf.reset_default_graph()
+
 		self.sess = tf.Session(config = self.sess_config)
 
-		# Input and output tensors
 		self.input = tf.placeholder(tf.float32, (None,) + self.input_shape)
 		self.target = tf.placeholder(tf.float32, (None,) + self.target_shape)
+		self.optimizer = tf.train.AdamOptimizer(0.0001)
 
-		# Create an optimizer
-		self.optimizer = tf.train.AdamOptimizer(0.01)

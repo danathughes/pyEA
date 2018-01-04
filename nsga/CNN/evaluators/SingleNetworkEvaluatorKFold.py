@@ -45,7 +45,7 @@ class SingleNetworkEvaluator:
 	"""
 	"""
 
-	def __init__(self, dataset_filename, population_path='./population', train_steps=500, gpu_id='/device:GPU:0'):
+	def __init__(self, dataset_filename, population_path='./population', gpu_id='/device:GPU:0', **kwargs):
 		"""
 		Create an object with the dataset loaded, and a path to store individuals and results
 		"""
@@ -72,7 +72,8 @@ class SingleNetworkEvaluator:
 		self.X = np.concatenate([train_x, validate_x], axis=0)
 		self.y = np.concatenate([train_y, validate_y], axis=0)
 
-		self.kfold = KFold(n_splits=NUM_SPLITS, shuffle=True)
+		num_folds = kwargs.get('num_folds', 5)
+		self.kfold = KFold(n_splits=num_folds, shuffle=True)
 
 		self.input_shape = self.X.shape[1:]
 		self.target_shape = self.y.shape[1:]
@@ -94,13 +95,47 @@ class SingleNetworkEvaluator:
 
 		self.has_model = False
 
-		self.num_train_steps = train_steps
-
-		self.sess_config = tf.ConfigProto(allow_soft_placement=False, log_device_placement=True)
+		self.sess_config = tf.ConfigProto(allow_soft_placement=False)
 #		self.sess_config = tf.ConfigProto(allow_soft_placement=True)
 		self.sess_config.gpu_options.allocator_type='BFC'
 		self.sess_config.gpu_options.per_process_gpu_memory_fraction = 0.20
 		self.sess_config.gpu_options.allow_growth = True
+
+		# When to stop training
+		self.max_train_steps = kwargs.get('max_train_steps', 5000)
+		self.min_train_steps = kwargs.get('min_train_steps', 20)
+		self.filter_lambda_1 = kwargs.get('filter_lambda_1', 0.05)
+		self.filter_lambda_2 = kwargs.get('filter_lambda_2', 0.05)
+		self.filter_lambda_3 = kwargs.get('filter_lambda_3', 0.05)
+
+		self.R_crit = kwargs.get('R_crit', 1.0)
+		self.num_R_crit = kwargs.get('num_R_crit', 10)
+
+		self.X_prev = 0.0
+		self.X_filter = 0.0
+		self.var_est = 0.0
+		self.var_est_data = 0.0
+
+
+	def __variance_ratio(self, loss):
+		"""
+		Check if the training has converged
+
+		Uses the formula from S. Natarajan and R.R. Rhinehart, "Automated Stopping Criteria for Neural Network Training"
+		"""
+
+		self.var_est = (0.05 * (loss - self.X_filter)**2) + (0.95 * self.var_est)
+		self.X_filter = (0.05 * loss) + (0.95 * self.X_filter)
+		self.var_est_data = (0.05 * (loss - self.X_prev)**2) + (0.95 * self.var_est_data)
+
+		R = (2.0 - self.filter_lambda_1) * self.var_est / (self.var_est_data + 1.0e-8)
+
+		self.X_prev = loss
+
+		return R
+
+
+
 
 
 	def __build_model(self, individual):
@@ -141,17 +176,49 @@ class SingleNetworkEvaluator:
 		if not self.has_model:
 			return
 
-		for i in range(self.num_train_steps):
+		# Reset steady state ID stuff
+		self.X_prev = 0.0
+		self.X_filter = 0.0
+		self.var_est = 0.0
+		self.var_est_data = 0.0
+		R_crit_count = 0
+
+		# Maintain a 
+		done = False
+		i = 0
+
+		while not done:
+#		for i in range(self.max_train_steps):
 			# Make some batches
 			x_batch, y_batch = make_batches(x, y)
 
 			for _x, _y in zip(x_batch, y_batch):
 				fd = {self.input: _x, self.target: _y}
 				self.sess.run(self.train_step, feed_dict=fd)
-		
+
+			# Check if the training is done
+			i += 1
+			loss, accuracy = self.__loss_and_accuracy(x,y)
+			R = self.__variance_ratio(loss)		
+
+			# Is the loss stable yet?
+			if R < self.R_crit:
+				R_crit_count += 1
+			else:
+				R_crit_count = 0
+			if R_crit_count > self.num_R_crit:
+				done = True
+
+			# Has enough training been done yet?
+			if i < self.min_train_steps:
+				done = False
+
+			# Has the maximum amount of training been finished?
+			if i > self.max_train_steps:
+				done = True
+
 			if self.verbose:
-				loss, accuracy = self.__loss_and_accuracy(x,y)
-				print "\tStep %d: Loss: %f, Accuracy: %f" % (i, loss, accuracy)
+				print "\tStep %d: Loss: %f, Accuracy: %f, R: %f" % (i, loss, accuracy, R)
 			else:
 				print
 
