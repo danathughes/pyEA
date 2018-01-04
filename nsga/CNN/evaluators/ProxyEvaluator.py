@@ -56,7 +56,7 @@ class ProxyEvaluator:
 		self.population = 0
 
 
-	def add(self, individual):
+	def evaluate(self, individual):
 		"""
 		Add an individual to be evaluated
 		"""
@@ -64,7 +64,7 @@ class ProxyEvaluator:
 		self.individuals.append(individual)
 
 
-	def evaluate(self):
+	def run(self):
 		"""
 		Save the current set of individuals to a pickle file and call the evaluation program
 		"""

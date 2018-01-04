@@ -64,7 +64,7 @@ class Individual(AbstractIndividual):
 		# isn't generated in the future
 		self.population_tracker.add(self)
 
-		self.evaluator.add(self)
+		self.evaluator.evaluate(self)
 
 
 	def link_genes(self):
