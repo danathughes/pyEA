@@ -16,6 +16,9 @@ Table of Contents
 - Cross validation (Done.)
 - Checkpoint (Needed for 'Summit'. Use database might be a good choice.)
 - Multi-model parallel evaluation (Done.  Useful for 'Summit')
+  - Tested. It seems that the models are evaluated on one GPU
+  - Need to use multiple GPUs since we have 4 Tesla K80 on one node on Summit.
+- Assign different model on different 'device:gpu:#' (# from 0 to 3 if 4 GPUs are available) based on MultiNetworkEvaluatorKFold.py
 
 ## Evolutionary Algorithms, EAs
 Evolutionary Algorithms (EAs) are a non-deterministic algorithm to solve optimization problems for optimal solutions.
