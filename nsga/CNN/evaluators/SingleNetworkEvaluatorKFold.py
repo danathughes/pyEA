@@ -41,7 +41,7 @@ def make_batches(X, y, batch_size=BATCH_SIZE, shuffle=True):
 	return X_batches, y_batches
 
 
-class SingleNetworkEvaluator:
+class SingleNetworkEvaluatorKFold:
 	"""
 	"""
 

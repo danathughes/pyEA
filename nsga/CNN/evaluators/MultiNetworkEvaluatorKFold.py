@@ -12,7 +12,6 @@ import numpy as np
 from sklearn.model_selection import KFold
 
 BATCH_SIZE = 100
-NUM_SPLITS = 3
 
 
 def make_batches(X, y, batch_size=BATCH_SIZE, shuffle=True):
@@ -74,22 +73,12 @@ class MultiNetworkEvaluatorKFold:
 		self.X = np.concatenate([train_x, validate_x], axis=0)
 		self.y = np.concatenate([train_y, validate_y], axis=0)
 
-		num_folds = kwargs.get('num_folds', 5)
+		self.num_folds = kwargs.get('num_folds', 5)
 
-		self.kfold = KFold(n_splits=num_folds, shuffle=True)
+		self.kfold = KFold(n_splits=self.num_folds, shuffle=True)
 
 		self.input_shape = self.X.shape[1:]
 		self.target_shape = self.y.shape[1:]
-
-		# Create a session
-		self.sess = None
-
-		# Input and output tensors
-		self.input = None
-		self.target = None
-
-		# Create an optimizer
-		self.optimizer = None
 
 		self.outputs = [None] * self.num_models
 		self.losses = [None] * self.num_models
@@ -97,6 +86,7 @@ class MultiNetworkEvaluatorKFold:
 		self.train_steps = [None] * self.num_models
 
 		self.individuals = [None] * self.num_models
+		self.namespaces = [None] * self.num_models
 
 		self.filenames = [None] * self.num_models
 		self.results_filenames = [None] * self.num_models
@@ -107,6 +97,14 @@ class MultiNetworkEvaluatorKFold:
 		self.sess_config.gpu_options.allocator_type='BFC'
 		self.sess_config.gpu_options.per_process_gpu_memory_fraction = 0.60
 		self.sess_config.gpu_options.allow_growth = True
+
+
+		self.sess = tf.Session(config = self.sess_config)
+
+		self.input = tf.placeholder(tf.float32, (None,) + self.input_shape)
+		self.target = tf.placeholder(tf.float32, (None,) + self.target_shape)
+		self.optimizer = tf.train.AdamOptimizer(0.0001)
+
 
 		# When to stop training
 		self.max_train_steps = kwargs.get('max_train_steps', 5000)
@@ -154,8 +152,9 @@ class MultiNetworkEvaluatorKFold:
 		namespace = 'Individual%d' % self.individual_num
 		self.namespaces[self.model_num] = namespace
 
-		try:
-			with tf.varialbe_scope(namespace):
+		if True:
+#		try:
+			with tf.variable_scope(namespace):
 				input_tensor, output_tensor = individual.generate_model(self.input)
 			
 			loss = tf.losses.softmax_cross_entropy(self.target, output_tensor)
@@ -178,8 +177,8 @@ class MultiNetworkEvaluatorKFold:
 			if self.verbose:
 				print "Model #%d Built" % self.individual_num
 			return True
-
-		except:
+		else:
+#		except:
 			if self.verbose:
 				print "Couldn't create model!"
 			return False
@@ -219,12 +218,12 @@ class MultiNetworkEvaluatorKFold:
 
 			for j in range(self.num_models):
 				# Is the loss stable yet?
-				if R[i] < self.R_crit:
-					R_crit_count[i] += 1
+				if R[j] < self.R_crit:
+					R_crit_count[j] += 1
 				else:
-					R_crit_count[i] = 0
+					R_crit_count[j] = 0
 
-				if R_crit_count[i] < self.num_R_crit:
+				if R_crit_count[j] < self.num_R_crit:
 					done = False
 
 			# Has enough training been done yet?
@@ -277,7 +276,7 @@ class MultiNetworkEvaluatorKFold:
 		for _x, _y in zip(x_batch, y_batch):
 
 			fd = {self.input: _x, self.target: _y}
-			results = self.sess.run(self.loss + self.accuracies, feed_dict=fd)
+			results = self.sess.run(self.losses + self.accuracies, feed_dict=fd)
 
 			for i in range(self.num_models):
 				total_losses[i] += float(len(_x) * results[i]) / len(x)
@@ -351,8 +350,8 @@ class MultiNetworkEvaluatorKFold:
 			fold_losses, fold_accuracies = self.__loss_and_accuracy(valid_x, valid_y)
 
 			for i in range(self.num_models):
-				model_loss[i] += float(fold_losses[i]) / NUM_SPLITS
-				model_accuracy[i] += float(fold_accuracies[i]) / NUM_SPLITS
+				model_loss[i] += float(fold_losses[i]) / self.num_folds
+				model_accuracy[i] += float(fold_accuracies[i]) / self.num_folds
 
 		num_params = self.__param_count()
 

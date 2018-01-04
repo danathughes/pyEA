@@ -74,15 +74,6 @@ class MultiNetworkEvaluator:
 		self.input_shape = self.train_x.shape[1:]
 		self.target_shape = self.train_y.shape[1:]
 
-		# Create a session
-		self.sess = None
-
-		# Input and output tensors
-		self.input = None
-		self.target = None
-
-		# Create an optimizer
-		self.optimizer = None
 
 		self.outputs = [None] * self.num_models
 		self.losses = [None] * self.num_models
@@ -90,6 +81,7 @@ class MultiNetworkEvaluator:
 		self.train_steps = [None] * self.num_models
 
 		self.individuals = [None] * self.num_models
+		self.namespaces = [None] * self.num_models
 
 		self.filenames = [None] * self.num_models
 		self.results_filenames = [None] * self.num_models
@@ -100,6 +92,12 @@ class MultiNetworkEvaluator:
 		self.sess_config.gpu_options.allocator_type='BFC'
 		self.sess_config.gpu_options.per_process_gpu_memory_fraction = 0.60
 		self.sess_config.gpu_options.allow_growth = True
+
+		self.sess = tf.Session(config = self.sess_config)
+
+		self.input = tf.placeholder(tf.float32, (None,) + self.input_shape)
+		self.target = tf.placeholder(tf.float32, (None,) + self.target_shape)
+		self.optimizer = tf.train.AdamOptimizer(0.0001)
 
 		# When to stop training
 		self.max_train_steps = kwargs.get('max_train_steps', 5000)
@@ -148,7 +146,7 @@ class MultiNetworkEvaluator:
 		self.namespaces[self.model_num] = namespace
 
 		try:
-			with tf.varialbe_scope(namespace):
+			with tf.variable_scope(namespace):
 				input_tensor, output_tensor = individual.generate_model(self.input)
 			
 			loss = tf.losses.softmax_cross_entropy(self.target, output_tensor)
@@ -211,12 +209,12 @@ class MultiNetworkEvaluator:
 
 			for j in range(self.num_models):
 				# Is the loss stable yet?
-				if R[i] < self.R_crit:
-					R_crit_count[i] += 1
+				if R[j] < self.R_crit:
+					R_crit_count[j] += 1
 				else:
-					R_crit_count[i] = 0
+					R_crit_count[j] = 0
 
-				if R_crit_count[i] < self.num_R_crit:
+				if R_crit_count[j] < self.num_R_crit:
 					done = False
 
 			# Has enough training been done yet?
@@ -272,7 +270,7 @@ class MultiNetworkEvaluator:
 		for _x, _y in zip(x_batch, y_batch):
 
 			fd = {self.input: _x, self.target: _y}
-			results = self.sess.run(self.loss + self.accuracies, feed_dict=fd)
+			results = self.sess.run(self.losses + self.accuracies, feed_dict=fd)
 
 			for i in range(self.num_models):
 				total_losses[i] += float(len(_x) * results[i]) / len(x)
@@ -323,7 +321,6 @@ class MultiNetworkEvaluator:
 		if self.verbose:
 			print "===Evaluating==="
 
-
 		# Split the training data into 10 folds
 		model_loss = [0.0] * self.num_models
 		model_accuracy = [0.0] * self.num_models
@@ -334,7 +331,7 @@ class MultiNetworkEvaluator:
 		self.__train(self.train_x, self.train_y)
 
 		# Get the results
-		model_loss, model_accuracy = self.__loss_and_accuracy(validate_x, validate_y)
+		model_loss, model_accuracy = self.__loss_and_accuracy(self.validate_x, self.validate_y)
 
 		num_params = self.__param_count()
 

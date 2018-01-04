@@ -16,7 +16,10 @@ from nsga.CNN.evaluators import *
 #TENSORFLOW_EVALUATOR = ProxyEvaluator()
 #TENSORFLOW_EVALUATOR = SingleNetworkEvaluator('cifar_10.pkl')
 #TENSORFLOW_EVALUATOR = SingleNetworkEvaluator('mnist.pkl')
-TENSORFLOW_EVALUATOR = MultiNetworkEvaluator('mnist.pkl', 5, population_path='./experiments/mnist/population')
+#TENSORFLOW_EVALUATOR = MultiNetworkEvaluator('mnist.pkl', 5, population_path='./experiments/mnist/population', max_train_steps=5, min_train_steps=1)
+#TENSORFLOW_EVALUATOR = MultiNetworkEvaluatorKFold('mnist.pkl', 5, population_path='./experiments/mnist/population', max_train_steps=5, min_train_steps=1, num_folds=2)
+#TENSORFLOW_EVALUATOR = SingleNetworkEvaluator('mnist.pkl', population_path='./experiments/mnist/population', max_train_steps=5, min_train_steps=1)
+TENSORFLOW_EVALUATOR = SingleNetworkEvaluatorKFold('mnist.pkl', population_path='./experiments/mnist/population', max_train_steps=5, min_train_steps=1, num_folds=2)
 #TENSORFLOW_EVALUATOR = DummyEvaluator('mnist.pkl')
 
 POPULATION_TRACKER = PopulationTracker()
@@ -51,8 +54,6 @@ if __name__ == '__main__':
 	# Evaluate the initial population
 	for individual in ga.population:
 		individual.calculateObjective()
-
-	TENSORFLOW_EVALUATOR.evaluate()
 
 	vis.plot(ga.population)
 
