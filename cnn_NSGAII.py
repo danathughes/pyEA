@@ -35,7 +35,7 @@ OUTPUT_SIZE = config['output_size']
 # For now, num_models should be no more than 4.
 # TENSORFLOW_EVALUATOR = MultiGPUsEvaluatorKFold('mnist.pkl', num_models=4, population_path='./population', max_train_steps=5, min_train_steps=1, num_folds=2)
 
-TENSORFLOW_EVALUATOR = PoolEvaluator('mnist.pkl', population_path='./population', population_size=POPULATION_SIZE, num_threads=NUM_THREADS)
+TENSORFLOW_EVALUATOR = ThreadPoolEvaluator('mnist.pkl', population_path='./population', population_size=POPULATION_SIZE, num_threads=NUM_THREADS)
 
 
 class CNN_Individual(CNN.Individual):
