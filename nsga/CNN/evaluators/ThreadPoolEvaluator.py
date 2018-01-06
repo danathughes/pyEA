@@ -60,7 +60,7 @@ class ThreadPool:
 
 
 class ThreadPoolEvaluator:
-	__init__(self, dataset_filename, population_path, num_threads, population_size):
+	def __init__(self, dataset_filename, population_path, num_threads, population_size):
 		self.population_size = population_size
 		self.num_individual = 0
 
