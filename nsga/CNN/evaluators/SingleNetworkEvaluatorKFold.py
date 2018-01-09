@@ -281,7 +281,7 @@ class SingleNetworkEvaluatorKFold:
 		results_filename = self.population_path + '/objectives_%d.pkl' % self.individual_num
 
 		pickle_file = open(filename, 'wb')
-		pickle.dump(individual.gene, pickle_file)
+		pickle.dump(individual.genotype, pickle_file)
 		pickle_file.close()
 
 		# Delete whatever is in the current graph

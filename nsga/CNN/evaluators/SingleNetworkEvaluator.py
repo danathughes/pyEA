@@ -125,9 +125,6 @@ class SingleNetworkEvaluator:
 		return R
 
 
-
-
-
 	def __build_model(self, individual):
 		"""
 		Build the actual model
@@ -271,7 +268,7 @@ class SingleNetworkEvaluator:
 		results_filename = self.population_path + '/objectives_%d.pkl' % self.individual_num
 
 		pickle_file = open(filename, 'wb')
-		pickle.dump(individual.gene, pickle_file)
+		pickle.dump(individual.genotype, pickle_file)
 		pickle_file.close()
 
 		# Delete whatever is in the current graph
@@ -281,7 +278,7 @@ class SingleNetworkEvaluator:
 		with tf.device(self.gpu_id):
 			self.input = tf.placeholder(tf.float32, (None,) + self.input_shape)
 			self.target = tf.placeholder(tf.float32, (None,) + self.target_shape)
-			self.optimizer = tf.train.AdamOptimizer(0.0001)
+			self.optimizer = tf.train.AdamOptimizer(0.01)
 
 			# Try to make the model
 			self.has_model = False
