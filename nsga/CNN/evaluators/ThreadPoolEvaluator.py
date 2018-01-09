@@ -69,7 +69,7 @@ class ThreadPoolEvaluator:
 		for i in range(num_threads):
 			device_id = '/device:GPU:%d' % i
 			population_path_device = population_path + '/gpu_%d' % i
-			evaluator_list.append( SingleNetworkEvaluator(dataset_filename, population_path_device, gpu_id=device_id, max_train_steps=5, min_train_steps=1) )
+			evaluator_list.append( SingleNetworkEvaluator(dataset_filename, population_path_device, gpu_id=device_id )
 
 		""" Instantiate a thread pool with NUM_THREADS evaluator threads """
 		self.pool = ThreadPool(evaluator_list, self.population_size)
