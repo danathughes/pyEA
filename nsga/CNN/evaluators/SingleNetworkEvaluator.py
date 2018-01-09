@@ -170,7 +170,7 @@ class SingleNetworkEvaluator:
 		self.var_est_data = 0.0
 		R_crit_count = 0
 
-		# Maintain a 
+		# Maintain a
 		done = False
 		i = 0
 
@@ -186,7 +186,7 @@ class SingleNetworkEvaluator:
 			# Check if the training is done
 			i += 1
 			loss, accuracy = self.__loss_and_accuracy(x,y)
-			R = self.__variance_ratio(loss)		
+			R = self.__variance_ratio(loss)
 
 			# Is the loss stable yet?
 			if R < self.R_crit:
