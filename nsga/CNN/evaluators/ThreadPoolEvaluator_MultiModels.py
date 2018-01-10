@@ -27,15 +27,11 @@ class Worker(Thread):
 		while True:
 			"""
 			WARNING !!!
-			There is risk of never ending block when there is only one
-			individual in the queue and the it pops to individual1, because
-			individual2 will never get its value
+			There is risk if two threads get the last two individuals in the queue, because the two individuals will not be evaluated.
 			"""
-			individual1 = self.individuals.get(block=True)
-			individual2 = self.individuals.get(block=True)
+			individual = self.individuals.get()
 			try:
-				self.evaluator.evaluate(individual1)
-				self.evaluator.evaluate(individual2)
+				self.evaluator.evaluate(individual)
 
 			except Exception as e:
 				""" An exception happened in this thread """
