@@ -279,7 +279,7 @@ class MultiNetworkEvaluator:
 		return total_losses, total_accuracy
 
 
-	def add(self, individual):
+	def evaluate(self, individual):
 		"""
 		Evaluate the provided individual
 		"""
@@ -294,7 +294,7 @@ class MultiNetworkEvaluator:
 		self.results_filenames[self.model_num] = self.population_path + '/objectives_%d.pkl' % self.individual_num
 
 		pickle_file = open(self.filenames[self.model_num], 'wb')
-		pickle.dump(individual.gene, pickle_file)
+		pickle.dump(individual.genotype, pickle_file)
 		pickle_file.close()
 
 
@@ -308,14 +308,14 @@ class MultiNetworkEvaluator:
 		self.individual_num += 1
 
 		if self.model_num == self.num_models:
-			self.evaluate()
-			self.reset()
+			self.__run()
+			self.__reset()
 
 
 
-	def evaluate(self):
+	def __run(self):
 		"""
-		Evaluate the individuals
+		Run tensorflow to train and evaluate all the models
 		"""
 
 		if self.verbose:
@@ -348,7 +348,7 @@ class MultiNetworkEvaluator:
 			self.individuals[i].objective = [1.0 - model_accuracy[i], num_params[i]]
 
 
-	def reset(self):
+	def __reset(self):
 		"""
 		Empty the list of individuals to be evaluated
 		"""

@@ -20,7 +20,7 @@ class DummyEvaluator:
 		pass
 
 
-	def add(self, individual):
+	def evaluate(self, individual):
 		"""
 		Evaluate the provided individual
 		"""
@@ -36,19 +36,3 @@ class DummyEvaluator:
 
 		individual.objective = [np.random.normal(x, x/10), np.random.normal(y, y/10)]
 
-
-
-	def evaluate(self):
-		"""
-		Save the current set of individuals to a pickle file and call the evaluation program
-		"""
-
-		pass
-
-
-	def reset(self):
-		"""
-		Empty the list of individuals to be evaluated
-		"""
-
-		pass

@@ -125,9 +125,6 @@ class SingleNetworkEvaluator:
 		return R
 
 
-
-
-
 	def __build_model(self, individual):
 		"""
 		Build the actual model
@@ -173,7 +170,7 @@ class SingleNetworkEvaluator:
 		self.var_est_data = 0.0
 		R_crit_count = 0
 
-		# Maintain a 
+		# Maintain a
 		done = False
 		i = 0
 
@@ -189,7 +186,7 @@ class SingleNetworkEvaluator:
 			# Check if the training is done
 			i += 1
 			loss, accuracy = self.__loss_and_accuracy(x,y)
-			R = self.__variance_ratio(loss)		
+			R = self.__variance_ratio(loss)
 
 			# Is the loss stable yet?
 			if R < self.R_crit:
@@ -256,7 +253,7 @@ class SingleNetworkEvaluator:
 		return total_loss, total_accuracy
 
 
-	def add(self, individual):
+	def evaluate(self, individual):
 		"""
 		Evaluate the provided individual
 		"""
@@ -271,7 +268,7 @@ class SingleNetworkEvaluator:
 		results_filename = self.population_path + '/objectives_%d.pkl' % self.individual_num
 
 		pickle_file = open(filename, 'wb')
-		pickle.dump(individual.gene, pickle_file)
+		pickle.dump(individual.genotype, pickle_file)
 		pickle_file.close()
 
 		# Delete whatever is in the current graph
@@ -281,7 +278,7 @@ class SingleNetworkEvaluator:
 		with tf.device(self.gpu_id):
 			self.input = tf.placeholder(tf.float32, (None,) + self.input_shape)
 			self.target = tf.placeholder(tf.float32, (None,) + self.target_shape)
-			self.optimizer = tf.train.AdamOptimizer(0.0001)
+			self.optimizer = tf.train.AdamOptimizer(0.01)
 
 			# Try to make the model
 			self.has_model = False
@@ -310,19 +307,3 @@ class SingleNetworkEvaluator:
 		individual.objective = [1.0 - accuracy, num_params]
 
 		self.individual_num += 1
-
-
-	def evaluate(self):
-		"""
-		Save the current set of individuals to a pickle file and call the evaluation program
-		"""
-
-		pass
-
-
-	def reset(self):
-		"""
-		Empty the list of individuals to be evaluated
-		"""
-
-		pass

@@ -18,7 +18,8 @@ def load(path):
 
 	config['population_size'] = parser.getint('NSGA_II', 'population_size')
 	config['output_size'] = parser.getint('NSGA_II', 'output_size')
-
+	config['num_threads'] = parser.getint('NSGA_II', 'num_threads')
+	
 	input_shape1 = parser.getint('NSGA_II', 'input_shape1')
 	input_shape2 = parser.getint('NSGA_II', 'input_shape2')
 	input_shape3 = parser.getint('NSGA_II', 'input_shape3')

@@ -266,7 +266,7 @@ class SingleNetworkEvaluatorKFold:
 		return total_loss, total_accuracy
 
 
-	def add(self, individual):
+	def evaluate(self, individual):
 		"""
 		Evaluate the provided individual
 		"""
@@ -281,7 +281,7 @@ class SingleNetworkEvaluatorKFold:
 		results_filename = self.population_path + '/objectives_%d.pkl' % self.individual_num
 
 		pickle_file = open(filename, 'wb')
-		pickle.dump(individual.gene, pickle_file)
+		pickle.dump(individual.genotype, pickle_file)
 		pickle_file.close()
 
 		# Delete whatever is in the current graph
@@ -340,18 +340,3 @@ class SingleNetworkEvaluatorKFold:
 
 		self.individual_num += 1
 
-
-	def evaluate(self):
-		"""
-		Save the current set of individuals to a pickle file and call the evaluation program
-		"""
-
-		pass
-
-
-	def reset(self):
-		"""
-		Empty the list of individuals to be evaluated
-		"""
-
-		pass
