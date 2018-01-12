@@ -278,7 +278,7 @@ class SingleNetworkEvaluator:
 		with tf.device(self.gpu_id):
 			self.input = tf.placeholder(tf.float32, (None,) + self.input_shape)
 			self.target = tf.placeholder(tf.float32, (None,) + self.target_shape)
-			self.optimizer = tf.train.AdamOptimizer(0.01)
+			self.optimizer = tf.train.AdamOptimizer(0.0001)
 
 			# Try to make the model
 			self.has_model = False

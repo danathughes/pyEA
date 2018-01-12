@@ -26,7 +26,7 @@ POPULATION_PATH = config['population_path']
 DATASET_FILENAME = config['dataset_filename']
 
 #TENSORFLOW_EVALUATOR = ProxyEvaluator()
-#TENSORFLOW_EVALUATOR = SingleNetworkEvaluator('cifar_10.pkl')
+# TENSORFLOW_EVALUATOR = SingleNetworkEvaluator(dataset_filename=DATASET_FILENAME, population_path=POPULATION_PATH)
 #TENSORFLOW_EVALUATOR = SingleNetworkEvaluator('mnist.pkl')
 #TENSORFLOW_EVALUATOR = MultiNetworkEvaluaor('mnist.pkl', 5, population_path='./experiments/mnist/population')
 #TENSORFLOW_EVALUATOR = MultiNetworkEvaluatorKFold('mnist.pkl', 5, population_path='./experiments/mnist/population')
@@ -39,6 +39,7 @@ DATASET_FILENAME = config['dataset_filename']
 
 TENSORFLOW_EVALUATOR = ThreadPoolEvaluator(dataset_filename=DATASET_FILENAME, population_path=POPULATION_PATH, population_size=POPULATION_SIZE, num_threads=NUM_THREADS)
 
+TENSORFLOW_EVALUATOR = None
 
 class CNN_Individual(CNN.Individual):
 	"""
@@ -57,15 +58,17 @@ if __name__ == '__main__':
 	ga = NSGA_II(POPULATION_SIZE, CNN_Individual)
 
 	# vis = Visualizer([0,1], [0,1.00000,0,100000])
+	print RESTORE_PATH
 
 	if RESTORE_PATH:
-		ga.restore()
+		ga.restore(RESTORE_PATH)
 	else:
 		ga.initialize()
 
 	print "=== Initial Population"
 	print "Current Population Objectives:"
-
+	for individual in ga.population:
+		print individual.objective
 
 	for i in range(100):
 		ga.step()

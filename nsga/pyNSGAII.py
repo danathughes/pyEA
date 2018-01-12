@@ -12,6 +12,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+import os
+import re
+import cPickle as pickle
 
 
 class AbstractIndividual:
@@ -124,7 +127,7 @@ class NSGA_II:
 		self.population_size = population_size
 		self.population = [self.Individual() for i in range(self.population_size)]
 		self.generation = 0
-
+		self.population = []
 		self.selection = tournamentSelection
 
 		# Possible callback function(s)
@@ -134,6 +137,8 @@ class NSGA_II:
 		# self.restore = restoreClass
 
 	def initialize(self):
+		self.population = [self.Individual() for i in range(self.population_size)]
+
 		for individual in self.population:
 			individual.calculateObjective()
 
@@ -146,8 +151,55 @@ class NSGA_II:
 		Trunk population and select the top population_size individuals
 		"""
 
+		# individual includes genotype and its objectives
+		individual_list = []
+		# for i in os.listdir(restore_path):
+		# 	if os.path.isfile(os.path.join(restore_path, i)):
+		# 		print os.path.join(restore_path, i)
 
+		for dirpath, directories, filenames in os.walk(restore_path):
+			# for directory in directories:
+			# 	print os.path.join(dirpath, directory)
+			for filename in filenames:
+				if 'objectives' in filename:
+					# name_list = re.split('[_  .]',filename)
+					name_list = re.findall(r'\d+', filename)
+					nums = [int(s) for s in name_list if s.isdigit()]
+					num = nums[0]
+					individual_name = 'individual_%d.pkl' % num
+					individual_path = os.path.join(dirpath, individual_name)
+					objective_path = os.path.join(dirpath, filename)
+					# print (individual_path, objectives_path)
+					if os.path.isfile(individual_path) and os.path.isfile(objective_path):
+						individual_list.append((individual_path, objective_path))
 
+		num_individual = len(individual_list)
+
+		# initialize a new population
+		self.population = [self.Individual() for i in range(num_individual)]
+
+		# read the data into the new population
+		for i in range(num_individual):
+			with open(individual_list[i][0]) as pickle_file:
+				genotype = pickle.load(pickle_file)
+			with open(individual_list[i][1]) as pickle_file:
+				objective = pickle.load(pickle_file)
+
+			self.population[i].genotype = genotype
+			self.population[i].objective = objective
+
+		self.sortPopulation()
+
+		# print "All Objectives:"
+		# for individual in self.population:
+		# 	print individual.objective
+
+		if len(self.population) < self.population_size:
+			print "The individuals loaded are not enough to form a population, reinitialize..."
+			print self.initialize()
+		else:
+			self.population = self.population[0:self.population_size]
+			print "Done restoring the population!"
 
 
 	def add_callback(self, callback, trigger):
