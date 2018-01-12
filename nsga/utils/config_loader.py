@@ -19,7 +19,10 @@ def load(path):
 	config['population_size'] = parser.getint('NSGA_II', 'population_size')
 	config['output_size'] = parser.getint('NSGA_II', 'output_size')
 	config['num_threads'] = parser.getint('NSGA_II', 'num_threads')
-	
+	config['restore_path'] = parser.getint('NSGA_II', 'restore_path')
+	config['population_path'] = parser.getint('NSGA_II', 'population_path')
+	config['dataset_filename'] = parser.getint('NSGA_II', 'dataset_filename')
+
 	input_shape1 = parser.getint('NSGA_II', 'input_shape1')
 	input_shape2 = parser.getint('NSGA_II', 'input_shape2')
 	input_shape3 = parser.getint('NSGA_II', 'input_shape3')

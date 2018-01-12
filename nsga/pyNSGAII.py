@@ -4,8 +4,8 @@
 ## (NSGA-II) on a test problem.
 ##
 ## Reference:
-## Deb, Kalyanmoy and Pratap, Amrit and Agarwal, Sameer and Meyarivan, T., 
-## "A Fast and Elistist Multiobjective Genetic Algorithm: NSGA-II," 
+## Deb, Kalyanmoy and Pratap, Amrit and Agarwal, Sameer and Meyarivan, T.,
+## "A Fast and Elistist Multiobjective Genetic Algorithm: NSGA-II,"
 ## IEEE Transactions on Evolutionary Computation, vol. 6, no. 2, April 2002.
 
 
@@ -99,7 +99,7 @@ def tournamentSelection(population, k=2, p=0.5):
 			selection = population[i]
 
 	# Was an individual selected from the population?  If not, assign the final
-	# index 
+	# index
 	if not selection:
 		selection = population[indices[-1]]
 
@@ -131,6 +131,23 @@ class NSGA_II:
 		self.callbacks = []
 		self.step_callback = kwargs.get('step_callback', None)
 		self.sort_callback = kwargs.get('sort_callback', None)
+		# self.restore = restoreClass
+
+	def initialize(self):
+		for individual in self.population:
+			individual.calculateObjective()
+
+
+	def restore(self, restore_path):
+		"""
+		Collect all files' paths in the given restore_path;
+		Read the individuals and objectives into self.population
+		Sort the population
+		Trunk population and select the top population_size individuals
+		"""
+
+
+
 
 
 	def add_callback(self, callback, trigger):
@@ -169,7 +186,7 @@ class NSGA_II:
 
 		# There may be an extra individual if the population had an odd number
 		return children[:self.population_size]
-		
+
 
 	def step(self):
 		"""
@@ -315,7 +332,7 @@ class NSGA_II:
 		"""
 
 		# Create a tuple which allows for sorting primarily on rank, followed by
-		# crowding distance.  The negative of the crowding distance is used to 
+		# crowding distance.  The negative of the crowding distance is used to
 		# ensure that less crowded regions are prefered.
 		rank_and_individual = [((ind.rank, -ind.crowdingDistance), ind) for ind in self.population]
 		rank_and_individual.sort()
