@@ -41,7 +41,7 @@ def make_batches(X, y, batch_size=BATCH_SIZE, shuffle=True):
 	return X_batches, y_batches
 
 
-class MultiNetworkEvaluator:
+class MultiGPUsEvaluator:
 	"""
 	"""
 
@@ -279,7 +279,7 @@ class MultiNetworkEvaluator:
 		return total_losses, total_accuracy
 
 
-	def evaluate(self, individual):
+	def add(self, individual):
 		"""
 		Evaluate the provided individual
 		"""
@@ -294,12 +294,13 @@ class MultiNetworkEvaluator:
 		self.results_filenames[self.model_num] = self.population_path + '/objectives_%d.pkl' % self.individual_num
 
 		pickle_file = open(self.filenames[self.model_num], 'wb')
-		pickle.dump(individual.genotype, pickle_file)
+		pickle.dump(individual.gene, pickle_file)
 		pickle_file.close()
 
 
 		# Build this particular model -- if successful, increment the model number
-		with tf.device(self.gpu_id):
+		device_gpu = '/device:GPU:%d' % self.model_num
+		with tf.device(device_gpu):
 			if self.__build_model(individual):
 				self.model_num += 1
 			else:
@@ -308,14 +309,14 @@ class MultiNetworkEvaluator:
 		self.individual_num += 1
 
 		if self.model_num == self.num_models:
-			self.__run()
-			self.__reset()
+			self.evaluate()
+			self.reset()
 
 
 
-	def __run(self):
+	def evaluate(self):
 		"""
-		Run tensorflow to train and evaluate all the models
+		Evaluate the individuals
 		"""
 
 		if self.verbose:
@@ -348,7 +349,7 @@ class MultiNetworkEvaluator:
 			self.individuals[i].objective = [1.0 - model_accuracy[i], num_params[i]]
 
 
-	def __reset(self):
+	def reset(self):
 		"""
 		Empty the list of individuals to be evaluated
 		"""

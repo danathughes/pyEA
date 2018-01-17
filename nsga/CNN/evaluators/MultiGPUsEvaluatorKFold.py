@@ -12,7 +12,6 @@ import numpy as np
 from sklearn.model_selection import KFold
 
 BATCH_SIZE = 100
-NUM_SPLITS = 3
 
 
 def make_batches(X, y, batch_size=BATCH_SIZE, shuffle=True):
@@ -41,11 +40,11 @@ def make_batches(X, y, batch_size=BATCH_SIZE, shuffle=True):
 	return X_batches, y_batches
 
 
-class MultiNetworkEvaluator:
+class MultiGPUsEvaluatorKFold:
 	"""
 	"""
 
-	def __init__(self, dataset_filename, num_models, population_path='./population', gpu_id='/device:GPU:0', **kwargs):
+	def __init__(self, dataset_filename, num_models=1, population_path='./population', gpu_id='/device:GPU:0', **kwargs):
 		"""
 		Create an object with the dataset loaded, and a path to store individuals and results
 		"""
@@ -68,12 +67,18 @@ class MultiNetworkEvaluator:
 			self.dataset = pickle.load(pickle_file)
 
 		# Input and target shapes
-		self.train_x, self.train_y = self.dataset['train']
-		self.validate_x, self.validate_y = self.dataset['validate']
+		train_x, train_y = self.dataset['train']
+		validate_x, validate_y = self.dataset['validate']
 
-		self.input_shape = self.train_x.shape[1:]
-		self.target_shape = self.train_y.shape[1:]
+		self.X = np.concatenate([train_x, validate_x], axis=0)
+		self.y = np.concatenate([train_y, validate_y], axis=0)
 
+		self.num_folds = kwargs.get('num_folds', 5)
+
+		self.kfold = KFold(n_splits=self.num_folds, shuffle=True)
+
+		self.input_shape = self.X.shape[1:]
+		self.target_shape = self.y.shape[1:]
 
 		self.outputs = [None] * self.num_models
 		self.losses = [None] * self.num_models
@@ -93,11 +98,13 @@ class MultiNetworkEvaluator:
 		self.sess_config.gpu_options.per_process_gpu_memory_fraction = 0.60
 		self.sess_config.gpu_options.allow_growth = True
 
+
 		self.sess = tf.Session(config = self.sess_config)
 
 		self.input = tf.placeholder(tf.float32, (None,) + self.input_shape)
 		self.target = tf.placeholder(tf.float32, (None,) + self.target_shape)
 		self.optimizer = tf.train.AdamOptimizer(0.0001)
+
 
 		# When to stop training
 		self.max_train_steps = kwargs.get('max_train_steps', 5000)
@@ -145,7 +152,8 @@ class MultiNetworkEvaluator:
 		namespace = 'Individual%d' % self.individual_num
 		self.namespaces[self.model_num] = namespace
 
-		try:
+		if True:
+#		try:
 			with tf.variable_scope(namespace):
 				input_tensor, output_tensor = individual.generate_model(self.input)
 
@@ -169,8 +177,8 @@ class MultiNetworkEvaluator:
 			if self.verbose:
 				print "Model #%d Built" % self.individual_num
 			return True
-
-		except:
+		else:
+#		except:
 			if self.verbose:
 				print "Couldn't create model!"
 			return False
@@ -193,6 +201,7 @@ class MultiNetworkEvaluator:
 		i = 0
 
 		while not done:
+#		for i in range(self.max_train_steps):
 			# Make some batches
 			x_batch, y_batch = make_batches(x, y)
 
@@ -225,13 +234,10 @@ class MultiNetworkEvaluator:
 			if i > self.max_train_steps:
 				done = True
 
-			if self.verbose:
-				print "\tStep %d:" % i
-				print "\t\tLosses:", loss
-				print "\t\tAccuracies:", accuracy
-				print "\t\tR:", R
-			else:
-				print
+#			if self.verbose:
+#				print "\tStep %d: Loss: %f, Accuracy: %f, R: %f" % (i, loss, accuracy, R)
+#			else:
+#				print
 
 
 	def __param_count(self):
@@ -279,7 +285,7 @@ class MultiNetworkEvaluator:
 		return total_losses, total_accuracy
 
 
-	def evaluate(self, individual):
+	def add(self, individual):
 		"""
 		Evaluate the provided individual
 		"""
@@ -294,12 +300,13 @@ class MultiNetworkEvaluator:
 		self.results_filenames[self.model_num] = self.population_path + '/objectives_%d.pkl' % self.individual_num
 
 		pickle_file = open(self.filenames[self.model_num], 'wb')
-		pickle.dump(individual.genotype, pickle_file)
+		pickle.dump(individual.gene, pickle_file)
 		pickle_file.close()
 
 
 		# Build this particular model -- if successful, increment the model number
-		with tf.device(self.gpu_id):
+		device_gpu = '/device:GPU:%d' % self.model_num
+		with tf.device(device_gpu):
 			if self.__build_model(individual):
 				self.model_num += 1
 			else:
@@ -308,30 +315,43 @@ class MultiNetworkEvaluator:
 		self.individual_num += 1
 
 		if self.model_num == self.num_models:
-			self.__run()
-			self.__reset()
+			self.evaluate()
+			self.reset()
 
 
-
-	def __run(self):
+	def evaluate(self):
 		"""
-		Run tensorflow to train and evaluate all the models
+		Evaluate the individuals
 		"""
 
 		if self.verbose:
 			print "===Evaluating==="
 
+
 		# Split the training data into 10 folds
 		model_loss = [0.0] * self.num_models
 		model_accuracy = [0.0] * self.num_models
 
+		fold_num = 1
+
 		# Train the model
+		for train_idx, valid_idx in self.kfold.split(self.X):
+			print "  Fold %d: " % fold_num
+			fold_num += 1
 
-		self.sess.run(tf.global_variables_initializer())
-		self.__train(self.train_x, self.train_y)
+			train_x, train_y = self.X[train_idx], self.y[train_idx]
+			valid_x, valid_y = self.X[valid_idx], self.y[valid_idx]
 
-		# Get the results
-		model_loss, model_accuracy = self.__loss_and_accuracy(self.validate_x, self.validate_y)
+
+			self.sess.run(tf.global_variables_initializer())
+			self.__train(train_x, train_y)
+
+			# Get the results
+			fold_losses, fold_accuracies = self.__loss_and_accuracy(valid_x, valid_y)
+
+			for i in range(self.num_models):
+				model_loss[i] += float(fold_losses[i]) / self.num_folds
+				model_accuracy[i] += float(fold_accuracies[i]) / self.num_folds
 
 		num_params = self.__param_count()
 
@@ -348,7 +368,7 @@ class MultiNetworkEvaluator:
 			self.individuals[i].objective = [1.0 - model_accuracy[i], num_params[i]]
 
 
-	def __reset(self):
+	def reset(self):
 		"""
 		Empty the list of individuals to be evaluated
 		"""

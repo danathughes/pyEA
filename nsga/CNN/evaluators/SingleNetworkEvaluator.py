@@ -92,13 +92,13 @@ class SingleNetworkEvaluator:
 		self.sess_config.gpu_options.allow_growth = True
 
 		# When to stop training
-		self.max_train_steps = kwargs.get('max_train_steps', 5000)
+		self.max_train_steps = kwargs.get('max_train_steps', 10000)
 		self.min_train_steps = kwargs.get('min_train_steps', 20)
 		self.filter_lambda_1 = kwargs.get('filter_lambda_1', 0.05)
 		self.filter_lambda_2 = kwargs.get('filter_lambda_2', 0.05)
 		self.filter_lambda_3 = kwargs.get('filter_lambda_3', 0.05)
 
-		self.R_crit = kwargs.get('R_crit', 1.0)
+		self.R_crit = kwargs.get('R_crit', 2.0)
 		self.num_R_crit = kwargs.get('num_R_crit', 10)
 
 		self.X_prev = 0.0
@@ -155,11 +155,12 @@ class SingleNetworkEvaluator:
 			self.has_model = False
 
 
-	def __train(self, x, y):
+	def __train(self, x, y, validation_x=None, validation_y=None):
 		"""
 		Run a train step on the model
 		"""
 
+	
 		if not self.has_model:
 			return
 
@@ -186,7 +187,8 @@ class SingleNetworkEvaluator:
 			# Check if the training is done
 			i += 1
 			loss, accuracy = self.__loss_and_accuracy(x,y)
-			R = self.__variance_ratio(loss)
+			validation_loss, validation_accuracy = self.__loss_and_accuracy(validation_x, validation_y)
+			R = self.__variance_ratio(validation_loss)
 
 			# Is the loss stable yet?
 			if R < self.R_crit:
@@ -205,7 +207,7 @@ class SingleNetworkEvaluator:
 				done = True
 
 			if self.verbose:
-				print "\tStep %d: Loss: %f, Accuracy: %f, R: %f" % (i, loss, accuracy, R)
+				print "\tStep %d: Loss: %f, Accuracy: %f, Validation Loss: %f, Validation Accuracy: %f, R: %f" % (i, loss, accuracy, validation_loss, validation_accuracy, R)
 			else:
 				print
 
@@ -278,7 +280,7 @@ class SingleNetworkEvaluator:
 		with tf.device(self.gpu_id):
 			self.input = tf.placeholder(tf.float32, (None,) + self.input_shape)
 			self.target = tf.placeholder(tf.float32, (None,) + self.target_shape)
-			self.optimizer = tf.train.AdamOptimizer(0.001)
+			self.optimizer = tf.train.AdamOptimizer(0.0001)
 
 			# Try to make the model
 			self.has_model = False
@@ -286,7 +288,7 @@ class SingleNetworkEvaluator:
 			self.__build_model(individual)
 		self.sess.run(tf.global_variables_initializer())
 
-		self.__train(self.train_x, self.train_y)
+		self.__train(self.train_x, self.train_y, self.validate_x, self.validate_y)
 
 		# Get the results
 		loss, accuracy = self.__loss_and_accuracy(self.validate_x, self.validate_y)

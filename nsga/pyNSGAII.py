@@ -4,14 +4,17 @@
 ## (NSGA-II) on a test problem.
 ##
 ## Reference:
-## Deb, Kalyanmoy and Pratap, Amrit and Agarwal, Sameer and Meyarivan, T., 
-## "A Fast and Elistist Multiobjective Genetic Algorithm: NSGA-II," 
+## Deb, Kalyanmoy and Pratap, Amrit and Agarwal, Sameer and Meyarivan, T.,
+## "A Fast and Elistist Multiobjective Genetic Algorithm: NSGA-II,"
 ## IEEE Transactions on Evolutionary Computation, vol. 6, no. 2, April 2002.
 
 
 import numpy as np
 import matplotlib.pyplot as plt
 
+import os
+import re
+import cPickle as pickle
 
 
 class AbstractIndividual:
@@ -99,7 +102,7 @@ def tournamentSelection(population, k=2, p=0.5):
 			selection = population[i]
 
 	# Was an individual selected from the population?  If not, assign the final
-	# index 
+	# index
 	if not selection:
 		selection = population[indices[-1]]
 
@@ -124,13 +127,79 @@ class NSGA_II:
 		self.population_size = population_size
 		self.population = [self.Individual() for i in range(self.population_size)]
 		self.generation = 0
-
+		self.population = []
 		self.selection = tournamentSelection
 
 		# Possible callback function(s)
 		self.callbacks = []
 		self.step_callback = kwargs.get('step_callback', None)
 		self.sort_callback = kwargs.get('sort_callback', None)
+		# self.restore = restoreClass
+
+	def initialize(self):
+		self.population = [self.Individual() for i in range(self.population_size)]
+
+		for individual in self.population:
+			individual.calculateObjective()
+
+
+	def restore(self, restore_path):
+		"""
+		Collect all files' paths in the given restore_path;
+		Read the individuals and objectives into self.population
+		Sort the population
+		Trunk population and select the top population_size individuals
+		"""
+
+		# individual includes genotype and its objectives
+		individual_list = []
+		# for i in os.listdir(restore_path):
+		# 	if os.path.isfile(os.path.join(restore_path, i)):
+		# 		print os.path.join(restore_path, i)
+
+		for dirpath, directories, filenames in os.walk(restore_path):
+			# for directory in directories:
+			# 	print os.path.join(dirpath, directory)
+			for filename in filenames:
+				if 'objectives' in filename:
+					# name_list = re.split('[_  .]',filename)
+					name_list = re.findall(r'\d+', filename)
+					nums = [int(s) for s in name_list if s.isdigit()]
+					num = nums[0]
+					individual_name = 'individual_%d.pkl' % num
+					individual_path = os.path.join(dirpath, individual_name)
+					objective_path = os.path.join(dirpath, filename)
+					# print (individual_path, objectives_path)
+					if os.path.isfile(individual_path) and os.path.isfile(objective_path):
+						individual_list.append((individual_path, objective_path))
+
+		num_individual = len(individual_list)
+
+		# initialize a new population
+		self.population = [self.Individual() for i in range(num_individual)]
+
+		# read the data into the new population
+		for i in range(num_individual):
+			with open(individual_list[i][0]) as pickle_file:
+				genotype = pickle.load(pickle_file)
+			with open(individual_list[i][1]) as pickle_file:
+				objective = pickle.load(pickle_file)
+
+			self.population[i].genotype = genotype
+			self.population[i].objective = objective
+
+		self.sortPopulation()
+
+		# print "All Objectives:"
+		# for individual in self.population:
+		# 	print individual.objective
+
+		if len(self.population) < self.population_size:
+			print "The individuals loaded are not enough to form a population, reinitialize..."
+			print self.initialize()
+		else:
+			self.population = self.population[0:self.population_size]
+			print "Done restoring the population!"
 
 
 	def add_callback(self, callback, trigger):
@@ -169,7 +238,7 @@ class NSGA_II:
 
 		# There may be an extra individual if the population had an odd number
 		return children[:self.population_size]
-		
+
 
 	def step(self):
 		"""
@@ -315,7 +384,7 @@ class NSGA_II:
 		"""
 
 		# Create a tuple which allows for sorting primarily on rank, followed by
-		# crowding distance.  The negative of the crowding distance is used to 
+		# crowding distance.  The negative of the crowding distance is used to
 		# ensure that less crowded regions are prefered.
 		rank_and_individual = [((ind.rank, -ind.crowdingDistance), ind) for ind in self.population]
 		rank_and_individual.sort()
