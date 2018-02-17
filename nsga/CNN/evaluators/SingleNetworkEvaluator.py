@@ -88,17 +88,17 @@ class SingleNetworkEvaluator:
 		self.sess_config = tf.ConfigProto(allow_soft_placement=False)
 #		self.sess_config = tf.ConfigProto(allow_soft_placement=True)
 		self.sess_config.gpu_options.allocator_type='BFC'
-		self.sess_config.gpu_options.per_process_gpu_memory_fraction = 0.20
+		self.sess_config.gpu_options.per_process_gpu_memory_fraction = 0.60
 		self.sess_config.gpu_options.allow_growth = True
 
 		# When to stop training
-		self.max_train_steps = kwargs.get('max_train_steps', 10000)
+		self.max_train_steps = kwargs.get('max_train_steps', 5000)
 		self.min_train_steps = kwargs.get('min_train_steps', 20)
 		self.filter_lambda_1 = kwargs.get('filter_lambda_1', 0.05)
 		self.filter_lambda_2 = kwargs.get('filter_lambda_2', 0.05)
 		self.filter_lambda_3 = kwargs.get('filter_lambda_3', 0.05)
 
-		self.R_crit = kwargs.get('R_crit', 2.0)
+		self.R_crit = kwargs.get('R_crit', 1.5)
 		self.num_R_crit = kwargs.get('num_R_crit', 10)
 
 		self.X_prev = 0.0
